@@ -13,35 +13,6 @@ The [LangSmith runs API](https://api.smith.langchain.com/redoc) provides two nam
 
 For version and sunset policy, see [API versioning and support policy](/langsmith/endpoint-deprecation). For step-by-step upgrade steps, see [Migrate API versions (runs endpoint)](/langsmith/endpoint-migration).
 
-## Key differences between the v1 and v2 namespace
-
-| Operation | API v1 | API v2 |
-|--|--------|--------|
-| **Create run** | JSON or multipart: `POST /api/v1/runs`, `/runs/batch`, `/runs/multipart` | Multipart only: `POST /v2/runs/multipart` with parts `post.{run_id}` / `patch.{run_id}` |
-| **Update run** | `PATCH /api/v1/runs/{run_id}` (JSON) | No PATCH. Use `POST /v2/runs/multipart` with part `patch.{run_id}` |
-| **Get run** | `GET /api/v1/runs/{run_id}`; query params optional | `GET /v2/runs/{run_id}`; `session_id` and `start_time` required |
-| **Query runs** | `POST /api/v1/runs/query`; body `start_time`, `end_time` | `POST /v2/runs/query`; body `min_start_time`, `max_start_time` |
-| **Get trace runs** | `GET /api/v1/traces/{trace_id}/runs`; query params optional | `GET /v2/traces/{trace_id}/runs`; `session_id`, `min_start_time`, `max_start_time` required |
-| **Delete runs** | `POST /api/v1/runs/delete`; body metadata or session_id + trace_ids | `POST /v2/runs/delete`; body session_id + trace_ids only (no metadata) |
-| **Create run response** | `{"message": "Runs batch ingested"}` | `{"success": true}` |
-| **Pagination** | `cursors.next` and `cursors.prev` | Only `cursors.next` |
-| **Select / fields** | Names like `extra`, `error` | `extra`→`metadata`, `error`→`error_preview`; some options removed in v2 |
-
-## v1 to v2 endpoint mapping
-
-Use this table to find the v2 equivalent for each v1 operation and the main migration steps. For full request/response details and code examples, see the [migration guide](/langsmith/endpoint-migration).
-
-| Operation | v1 | v2 | Migrate to v2 |
-| --------- | -- | -- | -------------- |
-| **Create run (single)** | `POST /api/v1/runs` (JSON body) | `POST /v2/runs/multipart` | Use multipart with one part: `post.{run_id}`, value = run JSON (same shape as v1). Response changes from `{"message": "Runs batch ingested"}` to `{"success": true}`. |
-| **Create runs (batch)** | `POST /api/v1/runs/batch` (JSON `post`/`patch` arrays) | `POST /v2/runs/multipart` | One multipart part per run: `post.{run_id}` or `patch.{run_id}` with run JSON. No batch JSON body. Response `{"success": true}`. |
-| **Create/update (multipart)** | `POST /api/v1/runs/multipart` | `POST /v2/runs/multipart` | Change path only; part names unchanged (`post.{run_id}`, `patch.{run_id}`, `.inputs`, `.outputs`, etc.). Response `{"success": true}`; part-level `Content-Encoding` header is not allowed in v2 (use body-level or Content-Type param). |
-| **Update run (single)** | `PATCH /api/v1/runs/{run_id}` (JSON body) | `POST /v2/runs/multipart` | No PATCH in v2. Use multipart with one part: `patch.{run_id}`, value = update JSON (same fields as v1 PATCH). Method and URL change; run_id is in the part name, not the path. |
-| **Get run** | `GET /api/v1/runs/{run_id}` (optional query params) | `GET /v2/runs/{run_id}` | Add **required** query params: `session_id`, `start_time`. Map v1 exclude/include to v2 `select` (allowlist). `session_id` and `start_time` required in v2; response field renames (e.g. `extra`→`metadata`, `error`→`error_preview` when using select). |
-| **Query runs** | `POST /api/v1/runs/query` | `POST /v2/runs/query` | Rename body: `start_time`→`min_start_time`, `end_time`→`max_start_time`. Keep `session` (required). No `cursors.prev` in v2; cursor format is predicate-style; `select`/`order` UPPERCASE; `trace_min_max_start_time` and `feedback_stats` not supported. |
-| **Get trace runs** | `GET /api/v1/traces/{trace_id}/runs` | `GET /v2/traces/{trace_id}/runs` | Add **required** query params: `session_id`, `min_start_time`, `max_start_time`. Same select/response renames as query runs. |
-| **Delete runs** | `POST /api/v1/runs/delete` (metadata or session_id + trace_ids) | `POST /v2/runs/delete` | Send only `session_id` and `trace_ids` in body. Metadata-based delete is not supported in v2; resolve to (session_id, trace_ids) via a query if needed. |
-
 
 ## SDK versions that support API v2
 
@@ -49,11 +20,41 @@ Only certain SDK versions support the runs API in the `/v2` namespace. Use a v2-
 
 | SDK | Minimum version for v2 |
 | --- | ---------------------- |
-| **Python** | TBD |
-| **TypeScript/JavaScript** | TBD |
+| **Python** | v0.5.0 |
+| **TypeScript/JavaScript** | v0.4.0 |
 
-If you're using an older SDK version, upgrade to at least the version listed above to use v2 endpoints. See the [migration guide](/langsmith/endpoint-migration) for request/response changes when moving from v1 to v2.
+If you're using an older SDK version, upgrade to at least the version listed above to use v2 endpoints. For the official v1 deprecation and sunset timetable, see [API versioning and support policy](/langsmith/endpoint-deprecation). See the [migration guide](/langsmith/endpoint-migration) for request/response changes when moving from v1 to v2.
 
+## Deprecated patterns for ingest
+
+The following patterns are deprecated for runs ingest (POST and PATCH). The API may log warnings when it detects them; requests are still processed.
+
+### POST-only (must not appear in PATCH)
+
+These fields must be sent only in POST, not in PATCH. Sending them in a patch is deprecated:
+
+- **`inputs`** — Must be sent in POST, not in patch.
+- **`serialized`** — Must be sent in POST, not in patch.
+
+### PATCH-only completion fields (should not appear in POST unless run is complete)
+
+These fields are PATCH-only in the sense that they should not be sent in POST unless the run is being completed in that same POST (i.e. `end_time` is also provided). Sending them in POST without `end_time` is deprecated and triggers a warning:
+
+- **`outputs`** — Send in PATCH, or in POST only when also sending `end_time`.
+- **`error`** — Same as `outputs`.
+- **`events`** — Same as `outputs`.
+- **`usage_metadata`** — Same as `outputs`.
+
+### Summary
+
+| Deprecated pattern | Correct pattern |
+| ------------------ | ---------------- |
+| `inputs` in PATCH | Send `inputs` only in POST. |
+| `serialized` in PATCH | Send `serialized` only in POST. |
+| `outputs` in POST (without `end_time`) | Send `outputs` in PATCH, or in POST only when also sending `end_time`. |
+| `error` in POST (without `end_time`) | Send `error` in PATCH, or in POST only when also sending `end_time`. |
+| `events` in POST (without `end_time`) | Send `events` in PATCH, or in POST only when also sending `end_time`. |
+| `usage_metadata` in POST (without `end_time`) | Send `usage_metadata` in PATCH, or in POST only when also sending `end_time`. |
 
 ## List pagination
 

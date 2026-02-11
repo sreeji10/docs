@@ -54,10 +54,33 @@ See the [migration guide](/langsmith/endpoint-migration) for the full list of br
 
 The following table lists deprecation and sunset dates for each version. We encourage you to upgrade to the latest version as soon as feasible after its release. Tentative dates (TBD) may change; a more specific sunset date will be announced on the [LangSmith changelog](https://changelog.langchain.com/) with at least two months notice.
 
-| API version | Status | Deprecation date | Sunset date | Upgrade guide |
-| ----------- | ------ | ---------------- | ----------- | ------------- |
-| **v2** | Supported | TBD | TBD | — |
-| **v1** | Deprecated | TBD | TBD | [Migrate to v2](/langsmith/endpoint-migration) |
+<table style={{ width: 'auto', maxWidth: '100%', tableLayout: 'fixed' }}>
+  <thead>
+    <tr>
+      <th style={{ width: '1%', padding: '0.5rem 0.75rem', textAlign: 'left' }}>API<br />version</th>
+      <th style={{ width: '1%', padding: '0.5rem 0.75rem', textAlign: 'left' }}>Status</th>
+      <th style={{ width: '1%', padding: '0.5rem 0.75rem', textAlign: 'left' }}>Deprecation<br />Date</th>
+      <th style={{ width: '1%', padding: '0.5rem 0.75rem', textAlign: 'left' }}>Sunset<br />date</th>
+      <th style={{ width: '1%', padding: '0.5rem 0.75rem', textAlign: 'left' }}>Upgrade<br />guide</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style={{ padding: '0.5rem 0.75rem' }}><strong>v2</strong></td>
+      <td style={{ padding: '0.5rem 0.75rem' }}>Supported</td>
+      <td style={{ padding: '0.5rem 0.75rem' }}>TBD</td>
+      <td style={{ padding: '0.5rem 0.75rem' }}>TBD</td>
+      <td style={{ padding: '0.5rem 0.75rem' }}>—</td>
+    </tr>
+    <tr>
+      <td style={{ padding: '0.5rem 0.75rem' }}><strong>v1</strong></td>
+      <td style={{ padding: '0.5rem 0.75rem' }}>Deprecated</td>
+      <td style={{ padding: '0.5rem 0.75rem' }}>Feb 13, 2026</td>
+      <td style={{ padding: '0.5rem 0.75rem' }}>Jul 31, 2026</td>
+      <td style={{ padding: '0.5rem 0.75rem' }}><a href="/langsmith/endpoint-migration">Migrate to v2</a></td>
+    </tr>
+  </tbody>
+</table>
 
 <Note>
 A more specific sunset date will be announced on the [LangSmith changelog](https://changelog.langchain.com/) and updated on this page with at least two months notice.

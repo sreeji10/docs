@@ -4,8 +4,6 @@ sidebarTitle: Migration guide
 description: Step-by-step guide to upgrade the endpoint from API v1 to v2, including breaking changes and request/response updates.
 ---
 
-**Last updated:** TBD
-
 This page is the migration guide for the API endpoints (v1 → v2). It covers breaking changes, request and response format updates, and code examples. For versioning and support policy (supported, deprecated, sunset), see [API versioning and support policy](/langsmith/endpoint-deprecation).
 
 Upgrading your API version affects the endpoint paths you call, the parameters and body you send, and the structure of responses. Follow the sections on this page and the [Migration checklist](#migration-checklist) to update your integration.
@@ -93,17 +91,17 @@ v1 has **PATCH** endpoints for updating a single run: `PATCH /api/v1/runs/{run_i
 
 The v2 patch payload **requires**: `id`, `trace_id`, `dotted_order`, `start_time`, `end_time`, `session_id`. The following are **optional**: `name`, `run_type`, `status` (and other update fields such as `outputs`, `error`).
 
-| v1.0.0 Field | v2.0.0 Field | Notes |
-| ------------ | ------------- | ----- |
-| N/A           | `id`          | Required in v2 |
-| N/A           | `trace_id`    | Required in v2 |
-| N/A           | `dotted_order` | Required in v2 |
-| N/A           | `start_time`  | Required in v2 |
-| N/A           | `end_time`    | Required in v2 |
-| N/A           | `session_id`  | Required in v2 |
-| N/A           | `name`        | Optional |
-| N/A           | `run_type`    | Optional |
-| N/A           | `status`      | Optional; explicitly set run status |
+| v2.0.0 Field | Notes |
+| ------------- | ----- |
+| `id`          | Required in v2 |
+| `trace_id`    | Required in v2 |
+| `dotted_order` | Required in v2 |
+| `start_time`  | Required in v2 |
+| `end_time`    | Required in v2 |
+| `session_id`  | Required in v2 |
+| `name`        | Optional |
+| `run_type`    | Optional |
+| `status`      | Optional; explicitly set run status |
 
 **Example migration:**
 
@@ -131,7 +129,7 @@ patch_data = {
 
 ### Response format changes
 
-#### GET /runs/{run_id}
+#### GET /runs/\{run_id}
 
 **Query parameter changes:**
 
@@ -158,7 +156,7 @@ The response structure has been updated in v2:
 
 Response continues to use `session_id` and `session_name`; no change from v1.
 
-#### GET /traces/{trace_id}/runs
+#### GET /traces/\{trace_id}/runs
 
 **Query parameter changes:**
 
@@ -440,8 +438,8 @@ await postRunV2(runId, "My Run", "llm", { input: "Hello" }, "my-project", traceI
 
 The following SDKs have been updated to support v2:
 
-- **Python SDK**: Version X.X.X and above
-- **TypeScript/JavaScript SDK**: Version X.X.X and above
+- **Python SDK**: Version 0.5.0 and above
+- **TypeScript/JavaScript SDK**: Version 0.4.0 and above
 
 If you're using an SDK, update to the latest version to get v2 support. SDKs will automatically use v2 endpoints when available.
 
