@@ -1,0 +1,7 @@
+# htmltest configuration for docs link check
+# See https://github.com/wjdp/htmltest for options
+
+IgnoreURLs:
+  - "academy\\.langchain\\.com"
+  - "https://fonts.googleapis.com"
+  - "https://fonts.gstatic.com"
