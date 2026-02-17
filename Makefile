@@ -66,6 +66,10 @@ clean:
 	@find . -name "*.pyd" -delete
 	@find . -name "__pycache__" -type d -exec rm -rf {} +
 
+# Link check using Playwright; crawls docs.langchain.com and verifies all links.
+check-links-playwright:
+	@./scripts/check-links-playwright.sh
+
 # Mintlify commands (run from build directory where final docs are generated)
 # broken-links: Checks for broken links, excluding OpenAPI-generated pages (/langsmith/agent-server-api/)
 broken-links: build
