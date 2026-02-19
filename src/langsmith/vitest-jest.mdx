@@ -586,6 +586,54 @@ ls.describe("generate sql demo", () => {
 });
 ```
 
+## Grouping tests into a test suite
+
+By default, each `ls.describe()` block creates a separate "test suite" with a corresponding [dataset](/langsmith/evaluation-concepts#datasets). The test suite name is derived from the name passed to `ls.describe()`.
+
+You can override the test suite name for a given `ls.describe()` block by passing a `testSuiteName` in the config:
+
+```typescript
+ls.describe("my describe block", () => {
+  ls.test(
+    "test name",
+    { inputs: { userQuery: "..." } },
+    async ({ inputs }) => {
+      ...
+    },
+  );
+}, {
+  testSuiteName: "SQL app tests",
+});
+```
+
+You can also set the `LANGSMITH_TEST_SUITE` environment variable to dynamically set the test suite name for all `ls.describe()` blocks in a run. This is useful in CI to get a consolidated view of all your results:
+
+```bash
+LANGSMITH_TEST_SUITE="SQL app tests" yarn run eval
+```
+
+To use `LANGSMITH_TEST_SUITE`, pass `process.env.LANGSMITH_TEST_SUITE` as the `testSuiteName`:
+
+```typescript
+ls.describe("fallback suite name", () => {
+  ls.test(
+    "test name",
+    { inputs: { userQuery: "..." } },
+    async ({ inputs }) => {
+      ...
+    },
+  );
+}, {
+  testSuiteName: process.env.LANGSMITH_TEST_SUITE,
+});
+```
+
+When `LANGSMITH_TEST_SUITE` is set, its value will be used as the test suite name. Otherwise, the name passed directly to `ls.describe()` is used as the fallback.
+
+<Info>
+The Python SDK's [pytest integration](/langsmith/pytest) reads `LANGSMITH_TEST_SUITE` automatically. In the JS SDK, you must explicitly pass it via the `testSuiteName` config as shown above.
+</Info>
+
 ## Configuring test suites
 
 You can configure test suites with values like metadata or a custom client by passing an extra argument to `ls.describe()` for the full suite or by passing a `config` field into `ls.test()` for individual tests:
@@ -597,20 +645,15 @@ ls.describe("test suite name", () => {
     {
       inputs: { ... },
       referenceOutputs: { ... },
-      // Extra config for the test run
       config: { tags: [...], metadata: { ... } }
     },
-    {
-      name: "test name",
-      tags: ["tag1", "tag2"],
-      skip: true,
-      only: true,
-    }
+    async ({ inputs, referenceOutputs }) => {
+      ...
+    },
   );
 }, {
   testSuiteName: "overridden value",
   metadata: { ... },
-  // Custom client
   client: new Client(),
 });
 ```
