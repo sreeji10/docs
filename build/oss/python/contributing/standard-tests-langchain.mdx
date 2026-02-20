@@ -110,7 +110,6 @@ Here are some example implementations of standard tests from popular integration
             <Card title="ChatAnthropic" href="https://github.com/langchain-ai/langchain/blob/master/libs/partners/anthropic/tests/unit_tests/test_standard.py" arrow>Unit tests</Card>
             <Card title="ChatGenAI" href="https://github.com/langchain-ai/langchain-google/blob/main/libs/genai/tests/unit_tests/test_standard.py" arrow>Unit tests</Card>
         </Columns>
-
     </Tab>
     <Tab title="Integration tests">
         <Columns cols={3}>
@@ -118,9 +117,27 @@ Here are some example implementations of standard tests from popular integration
             <Card title="ChatAnthropic" href="https://github.com/langchain-ai/langchain/blob/master/libs/partners/anthropic/tests/integration_tests/test_standard.py" arrow>Integration tests</Card>
             <Card title="ChatGenAI" href="https://github.com/langchain-ai/langchain-google/blob/main/libs/genai/tests/integration_tests/test_standard.py" arrow>Integration tests</Card>
         </Columns>
+    </Tab>
+    <Tab title="Sandbox integration tests">
+        Ensure your integration passes the standard test suite.
+        See the [Daytona integration](https://github.com/langchain-ai/deepagents/blob/main/libs/partners/daytona/tests/integration_tests/test_integration.py) as an example.
 
+        <Card title="Daytona" href="https://github.com/langchain-ai/deepagents/blob/main/libs/partners/daytona/tests/integration_tests/test_integration.py" arrow>Sandbox Integration tests</Card>
     </Tab>
 </Tabs>
+
+
+
+## Sandbox integrations
+
+Deep agents sandbox integrations use `SandboxIntegrationTests` from `langchain_tests.integration_tests`.
+Subclass it and provide a `sandbox` fixture that yields a `SandboxBackendProtocol` instance.
+Use the [Daytona integration tests](https://github.com/langchain-ai/deepagents/blob/main/libs/partners/daytona/tests/integration_tests/test_integration.py) as a reference implementation.
+See [Contributing a sandbox integration](/oss/python/contributing/integrations-langchain) for publishing guidelines.
+
+
+
+
 
 ---
 
@@ -152,7 +169,6 @@ uv run --group test pytest tests/integration_tests/test_chat_models.py::test_cha
 # Run a specific test function within a class
 uv run --group test pytest tests/integration_tests/test_chat_models.py::TestChatParrotLinkIntegration::test_chat_completions
 ```
-
 
 
 ## Troubleshooting

@@ -115,23 +115,21 @@ class ChatParrotLinkStandardIntegrationTests extends ChatModelIntegrationTests<
 To see the complete list of configurable capabilities and their defaults, visit the [API reference](https://reference.langchain.com/javascript) for standard tests.
 
 
-Here are some example implementations of standard tests from popular integrations:
 
-<Tabs>
-    <Tab title="Unit tests">
 
-    </Tab>
-    <Tab title="Integration tests">
+## Sandbox integrations
 
-    </Tab>
-</Tabs>
+
+
+Deep agents sandbox integrations use `sandboxStandardTests` from `@langchain/sandbox-standard-tests`.
+Call it with a config object that includes `createSandbox`, `resolvePath`, and `closeSandbox`.
+Use the [Daytona integration tests](https://github.com/langchain-ai/deepagentsjs/blob/main/libs/providers/daytona/src/sandbox.int.test.ts) as a reference implementation.
+See [Contributing a sandbox integration](/oss/javascript/contributing/integrations-langchain) for publishing guidelines.
+
+
 
 ---
 
-## Running tests
-
-
-TODO
 
 
 ## Troubleshooting
