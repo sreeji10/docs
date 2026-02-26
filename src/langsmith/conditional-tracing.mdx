@@ -138,10 +138,13 @@ This pattern is useful for:
 The @[`tracing_context`][tracing_context] context manager works with automatic tracing. You can keep `LANGSMITH_TRACING=true` set globally and use `tracing_context` to override settings for specific requests:
 
 ```python
+import os
 import langsmith as ls
-from langsmith import traceable
 
-@traceable
+# Global environment variable set
+os.environ["LANGSMITH_TRACING"] = "true"
+
+@ls.traceable
 def process_data(data: str):
     return data.upper()
 
@@ -166,13 +169,12 @@ When you nest `tracing_context` blocks, the innermost context takes precedence.
 
 ```python Python
 import langsmith as ls
-from langsmith import traceable
 
-@traceable
+@ls.traceable
 def inner_function(data: str):
     return data
 
-@traceable
+@ls.traceable
 def outer_function(data: str):
     # This call respects the inner context
     return inner_function(data)
