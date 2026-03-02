@@ -1733,6 +1733,10 @@
   },
   "redirects": [
     {
+      "source": "/docs",
+      "destination": "/"
+    },
+    {
       "source": "/langsmith/api-v1-v2-overview",
       "destination": "/langsmith/trace-with-api"
     },
