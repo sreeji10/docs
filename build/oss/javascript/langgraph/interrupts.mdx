@@ -79,6 +79,13 @@ await graph.invoke(new Command({ resume: true }), config);
 - The node restarts from the beginning of the node where the [`interrupt`](https://reference.langchain.com/javascript/langchain-langgraph/index/interrupt) was called when resumed, so any code before the [`interrupt`](https://reference.langchain.com/javascript/langchain-langgraph/index/interrupt) runs again
 - You can pass any JSON-serializable value as the resume value
 
+<Warning>
+
+`new Command({ resume: ... })` is the **only** `Command` pattern intended as input to `invoke()`/`stream()`. The other `Command` parameters (`update`, `goto`, `graph`) are designed for [returning from node functions](/oss/javascript/langgraph/graph-api#command). Do not pass `new Command({ update: ... })` as input to continue multi-turn conversations — pass a plain input object instead.
+
+</Warning>
+
+
 
 ## Common patterns
 

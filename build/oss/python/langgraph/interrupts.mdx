@@ -76,6 +76,13 @@ graph.invoke(Command(resume=True), config=config)
 - The node restarts from the beginning of the node where the [`interrupt`](https://reference.langchain.com/python/langgraph/types/interrupt) was called when resumed, so any code before the [`interrupt`](https://reference.langchain.com/python/langgraph/types/interrupt) runs again
 - You can pass any JSON-serializable value as the resume value
 
+<Warning>
+
+`Command(resume=...)` is the **only** `Command` pattern intended as input to `invoke()`/`stream()`. The other `Command` parameters (`update`, `goto`, `graph`) are designed for [returning from node functions](/oss/python/langgraph/graph-api#command). Do not pass `Command(update=...)` as input to continue multi-turn conversations — pass a plain input dict instead.
+
+</Warning>
+
+
 
 
 
