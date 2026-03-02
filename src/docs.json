@@ -4,13 +4,13 @@
   "name": "Docs by LangChain",
   "description": "Documentation for LangSmith, Agent Builder, and our open source packages.",
   "colors": {
-    "primary": "#2F6868",
-    "light": "#84C4C0",
-    "dark": "#1C3C3C"
+    "primary": "#161F34",
+    "light": "#7FC8FF",
+    "dark": "#006DDD"
   },
   "logo": {
-    "light": "/images/brand/langchain-docs-teal.svg",
-    "dark": "/images/brand/langchain-docs-lilac.svg"
+    "light": "/images/brand/langchain-docs-dark-blue.png",
+    "dark": "/images/brand/langchain-docs-light-blue.png"
   },
   "favicon": {
     "light": "/images/brand/docs-favicon.png",
@@ -21,7 +21,22 @@
   },
   "fonts": {
     "heading": {
-      "family": "Manrope"
+      "family": "TWK Lausanne",
+      "weight": 400,
+      "source": "/fonts/TWKLausanne-400.woff2",
+      "format": "woff2"
+    },
+    "body": {
+      "family": "TWK Lausanne",
+      "weight": 250,
+      "source": "/fonts/TWKLausanne-250.woff2",
+      "format": "woff2"
+    }
+  },
+  "background": {
+    "color": {
+      "light": "#F2FAFF",
+      "dark": "#030710"
     }
   },
   "appearance": {
@@ -29,7 +44,10 @@
     "strict": false
   },
   "styling": {
-    "eyebrows": "breadcrumbs"
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": "catppuccin-mocha"
+    }
   },
   "contextual": {
     "options": [
@@ -144,7 +162,7 @@
         },
         {
           "product": "LangSmith",
-          "icon": "tools",
+          "icon": "/images/brand/observability-icon-dark.png",
           "description": "LLM observability, evaluation, and deployment",
           "tabs": [
             {
@@ -870,7 +888,7 @@
         },
         {
           "product": "Agent Builder",
-          "icon": "wand",
+          "icon": "/images/brand/agent-builder-icon-dark.png",
           "description": "Create helpful AI agents without code",
           "pages": [
             "langsmith/agent-builder",
@@ -912,7 +930,7 @@
         },
         {
           "product": "Open source",
-          "icon": "packages",
+          "icon": "/images/brand/langchain-icon.png",
           "description": "Build agents with our open source packages",
           "dropdowns": [
             {
