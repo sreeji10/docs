@@ -42,7 +42,7 @@ const getWeather = tool(
 );
 
 const agent = createAgent({
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
   tools: [getWeather],
 });
 
@@ -161,7 +161,7 @@ Let's walk through each step:
         import { initChatModel } from "langchain";
 
         const model = await initChatModel(
-          "claude-sonnet-4-5-20250929",
+          "claude-sonnet-4-6",
           { temperature: 0.5, timeout: 10, maxTokens: 1000 }
         );
         ```
@@ -209,7 +209,7 @@ Let's walk through each step:
         import { createAgent } from "langchain";
 
         const agent = createAgent({
-          model: "claude-sonnet-4-5-20250929",
+          model: "claude-sonnet-4-6",
           systemPrompt: systemPrompt,
           tools: [getUserLocation, getWeather],
           responseFormat,
@@ -294,7 +294,7 @@ const getUserLocation = tool(
 
 // Configure model
 const model = await initChatModel(
-  "claude-sonnet-4-5-20250929",
+  "claude-sonnet-4-6",
   { temperature: 0 }
 );
 

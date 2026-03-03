@@ -83,7 +83,7 @@ await graph.invoke(
     });
 
     const agent = createAgent({  // [!code highlight]
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-6",
       tools: [/* your tools here */],
       middleware: [personalizedPrompt] as const, // [!code highlight]
     });

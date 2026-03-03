@@ -59,7 +59,7 @@ bun add @langchain/langgraph @langchain/core
 import { ChatAnthropic } from "@langchain/anthropic";
 
 const llm = new ChatAnthropic({
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
   apiKey: "<your_anthropic_key>"
 });
 ```
@@ -86,7 +86,7 @@ const State = new StateSchema({
 });
 
 const model = new ChatAnthropic({
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
   temperature: 0,
 });
 

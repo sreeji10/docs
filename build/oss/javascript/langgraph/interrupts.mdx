@@ -502,7 +502,7 @@ This approach is useful when you want the approval logic to live with the tool i
       },
     );
 
-    const model = new ChatAnthropic({ model: "claude-sonnet-4-5-20250929" }).bindTools([sendEmailTool]);
+    const model = new ChatAnthropic({ model: "claude-sonnet-4-6" }).bindTools([sendEmailTool]);
 
     const State = new StateSchema({
       messages: MessagesValue,

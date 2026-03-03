@@ -28,15 +28,15 @@ The CLI integrates automatically with the [following model providers](#provider-
     uv tool install 'deepagents-cli[anthropic,bedrock,cohere,deepseek,fireworks,google-genai,groq,huggingface,ibm,mistralai,nvidia,ollama,openai,openrouter,perplexity,vertexai,xai]'
     ```
 
-2. **Set your API key**
+2. **Set credentials**
 
-    Most providers require an API key. Set the appropriate environment variable listed in the table below. Refer to each integration package's docs for details.
+    Most providers require an API key. Set the appropriate environment variable listed in the table below. Some providers use other credentials (for example, Vertex AI uses `GOOGLE_CLOUD_PROJECT` plus ADC). Refer to each integration package's docs for details.
 
 ### Provider reference
 
 Using a provider not listed here? See [Arbitrary providers](#arbitrary-providers) — any LangChain-compatible provider can be used in the CLI with some additional setup.
 
-| Provider | Package | API key env var | Model profiles |
+| Provider | Package | Credential env var | Model profiles |
 | --- | --- | --- | --- |
 | OpenAI | [`langchain-openai`](/oss/python/integrations/chat/openai) | `OPENAI_API_KEY` | ✅ |
 | Azure OpenAI | [`langchain-openai`](/oss/python/integrations/chat/azure_chat_openai) | `AZURE_OPENAI_API_KEY` | ✅ |
@@ -122,7 +122,9 @@ When the CLI launches, it resolves which model to use in the following order:
 1. **`--model` flag** always wins when provided.
 2. **`[models].default`** in `~/.deepagents/config.toml` — The user's intentional long-term preference.
 3. **`[models].recent`** in `~/.deepagents/config.toml` — The last model switched to via `/model`. Written automatically; never overwrites `[models].default`.
-4. **Environment auto-detection** — Falls back to the first provider with a valid API key, checked in order: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_CLOUD_PROJECT` (Vertex AI).
+4. **Environment auto-detection** — Falls back to the first available startup credential, checked in order: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_CLOUD_PROJECT` (Vertex AI).
+
+This startup fallback intentionally checks only those four credentials. Other supported providers (for example, Groq) are still available via `--model`, `/model`, and saved defaults (`[models].default` / `[models].recent`).
 
 ---
 

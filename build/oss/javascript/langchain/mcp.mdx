@@ -57,7 +57,7 @@ const client = new MultiServerMCPClient({  // [!code highlight]
 
 const tools = await client.getTools();  // [!code highlight]
 const agent = createAgent({
-    model: "claude-sonnet-4-5-20250929",
+    model: "claude-sonnet-4-6",
     tools,  // [!code highlight]
 });
 
@@ -346,7 +346,7 @@ import { createAgent } from "langchain";
 
 const client = new MultiServerMCPClient({...});
 const tools = await client.getTools();  // [!code highlight]
-const agent = createAgent({ model: "claude-sonnet-4-5-20250929", tools });
+const agent = createAgent({ model: "claude-sonnet-4-6", tools });
 ```
 
 

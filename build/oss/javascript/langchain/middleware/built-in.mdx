@@ -1065,7 +1065,7 @@ const agent = createAgent({
 </ParamField>
 
 <ParamField body="model" type="string | BaseChatModel">
-    Model to use for generating emulated tool responses. Can be a model identifier string (e.g., `'anthropic:claude-sonnet-4-5-20250929'`) or a `BaseChatModel` instance. Defaults to the agent's model if not specified.
+    Model to use for generating emulated tool responses. Can be a model identifier string (e.g., `'anthropic:claude-sonnet-4-6'`) or a `BaseChatModel` instance. Defaults to the agent's model if not specified.
 </ParamField>
 
 
@@ -1138,7 +1138,7 @@ const agent5 = createAgent({
   tools: [getWeather, sendEmail],
   middleware: [
     toolEmulatorMiddleware({
-      model: "claude-sonnet-4-5-20250929",
+      model: "claude-sonnet-4-6",
     }),
   ],
 });
@@ -1273,7 +1273,7 @@ import { createFilesystemMiddleware } from "deepagents";
 // FilesystemMiddleware is included by default in createDeepAgent
 // You can customize it if building a custom agent
 const agent = createAgent({
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
   middleware: [
     createFilesystemMiddleware({
       backend: undefined,  // Optional: custom backend (defaults to StateBackend)
@@ -1302,7 +1302,7 @@ import { InMemoryStore } from "@langchain/langgraph-checkpoint";
 const store = new InMemoryStore();
 
 const agent = createAgent({
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
   store,
   middleware: [
     createFilesystemMiddleware({
@@ -1351,10 +1351,10 @@ const getWeather = tool(
 );
 
 const agent = createAgent({
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
   middleware: [
     createSubAgentMiddleware({
-      defaultModel: "claude-sonnet-4-5-20250929",
+      defaultModel: "claude-sonnet-4-6",
       defaultTools: [],
       subagents: [
         {
@@ -1406,10 +1406,10 @@ const weatherSubagent: SubAgent = {
 };
 
 const agent = createAgent({
-  model: "claude-sonnet-4-5-20250929",
+  model: "claude-sonnet-4-6",
   middleware: [
     createSubAgentMiddleware({
-      defaultModel: "claude-sonnet-4-5-20250929",
+      defaultModel: "claude-sonnet-4-6",
       defaultTools: [],
       subagents: [weatherSubagent],
     }),

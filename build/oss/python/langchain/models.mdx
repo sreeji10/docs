@@ -104,7 +104,7 @@ Using [`init_chat_model`](https://reference.langchain.com/python/langchain/chat_
 
 ```python Initialize using model parameters
 model = init_chat_model(
-    "claude-sonnet-4-5-20250929",
+    "claude-sonnet-4-6",
     # Kwargs passed to the model:
     temperature=0.7,
     timeout=30,
@@ -1207,7 +1207,7 @@ configurable_model.invoke(
 )
 configurable_model.invoke(
     "what's your name",
-    config={"configurable": {"model": "claude-sonnet-4-5-20250929"}},  # Run with Claude
+    config={"configurable": {"model": "claude-sonnet-4-6"}},  # Run with Claude
 )
 ```
 
@@ -1230,7 +1230,7 @@ configurable_model.invoke(
         "what's your name",
         config={
             "configurable": {
-                "first_model": "claude-sonnet-4-5-20250929",
+                "first_model": "claude-sonnet-4-6",
                 "first_temperature": 0.5,
                 "first_max_tokens": 100,
             }
@@ -1286,7 +1286,7 @@ configurable_model.invoke(
     ```python
     model_with_tools.invoke(
         "what's bigger in 2024 LA or NYC",
-        config={"configurable": {"model": "claude-sonnet-4-5-20250929"}},
+        config={"configurable": {"model": "claude-sonnet-4-6"}},
     ).tool_calls
     ```
     ```
