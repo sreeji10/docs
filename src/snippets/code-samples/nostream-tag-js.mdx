@@ -42,14 +42,5 @@ const graph = new StateGraph(State)
   .addEdge(START, "analyzeInternally")
   .compile();
 
-// Stream with "messages" mode - only tokens from streamingModel will appear
-const streamedNodes: string[] = [];
-for await (const [msg, metadata] of await graph.stream(
-  { topic: "AI" },
-  { streamMode: "messages" }
-)) {
-  if (msg.content) {
-    streamedNodes.push(metadata.langgraph_node);
-  }
-}
+const stream = await graph.stream({ topic: "AI" }, { streamMode: "messages" });
 ```

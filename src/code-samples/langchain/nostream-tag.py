@@ -1,16 +1,19 @@
 """Example of using nostream tag to exclude LLM output from the stream."""
 
 # :snippet-start: nostream-tag
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import BaseMessage
 from langgraph.graph import START, StateGraph
 
 # Create two models: one that streams, one that doesn't
-streaming_model = ChatAnthropic(model="claude-3-haiku-20240307")
-internal_model = ChatAnthropic(model="claude-3-haiku-20240307").with_config(
-    {"tags": ["nostream"]}
+streaming_model = ChatAnthropic(
+    model_name="claude-3-haiku-20240307", timeout=None, stop=None
 )
+internal_model = ChatAnthropic(
+    model_name="claude-3-haiku-20240307", timeout=None, stop=None
+).with_config({"tags": ["nostream"]})
 
 
 class State(TypedDict):
@@ -49,16 +52,21 @@ graph = (
     .compile()
 )
 
-stream = graph.stream({"topic": "AI"}, stream_mode="messages")
+initial_state: State = {
+    "topic": "AI",
+    "public_response": "",
+    "internal_analysis": "",
+}
+stream = graph.stream(cast("Any", initial_state), stream_mode="messages")
 # :snippet-end:
 
 # :remove-start:
 # Stream with "messages" mode - only tokens from streaming_model will appear
 streamed_nodes: list[str] = []
 for msg, metadata in stream:
-    if msg.content:
+    if isinstance(msg, BaseMessage) and msg.content and isinstance(metadata, dict):
         streamed_nodes.append(metadata["langgraph_node"])
-        # print(msg.content, end="|", flush=True)  # noqa: T201
+        # print(msg.content, end="|", flush=True)
 assert "analyze_internally" not in streamed_nodes, (
     "No tokens from the non-streaming model should appear in the stream"
 )

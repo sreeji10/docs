@@ -1,8 +1,7 @@
 # :snippet-start: tool-return-command
-from langgraph.types import Command
-
 from langchain.messages import ToolMessage
 from langchain.tools import ToolRuntime, tool
+from langgraph.types import Command
 
 
 @tool
