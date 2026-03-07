@@ -4,6 +4,7 @@ import json
 import logging
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 import yaml
@@ -102,6 +103,10 @@ class DocumentationBuilder:
         # Copy shared files (docs.json, images, etc.)
         logger.info("Copying shared files...")
         self._copy_shared_files()
+
+        # Build and copy chat widget
+        logger.info("Building chat widget...")
+        self._build_chat_widget()
 
         logger.info("✅ New structure build complete")
 
@@ -818,6 +823,66 @@ class DocumentationBuilder:
                     copied_count += 1
 
         logger.info("✅ Shared files copied: %d files", copied_count)
+
+    def _build_chat_widget(self) -> None:
+        """Build the chat widget and copy it to the build directory.
+
+        Runs `bun chat/build.ts` from the project root to compile the
+        chat widget TypeScript source into a single IIFE JavaScript file,
+        then copies the output to the build directory root.
+        """
+        project_root = self.src_dir.parent
+        chat_dir = project_root / "chat"
+        dist_file = chat_dir / "dist" / "chat-widget.js"
+        output_file = self.build_dir / "chat-widget.js"
+
+        if not chat_dir.exists():
+            logger.warning("chat/ directory not found, skipping chat widget build")
+            return
+
+        if shutil.which("bun") is None:
+            if dist_file.exists():
+                logger.warning(
+                    "bun not found — using pre-built chat widget from %s", dist_file
+                )
+                shutil.copy2(dist_file, output_file)
+                logger.info("✅ Chat widget copied (pre-built)")
+                return
+            logger.warning(
+                "bun not found and no pre-built chat widget — skipping. "
+                "Install bun (https://bun.sh) to build the chat widget."
+            )
+            return
+
+        try:
+            result = subprocess.run(
+                ["bun", "build.ts"],
+                cwd=str(chat_dir),
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=False,
+            )
+            if result.returncode != 0:
+                logger.error(
+                    "Chat widget build failed:\n%s\n%s",
+                    result.stdout,
+                    result.stderr,
+                )
+                return
+        except FileNotFoundError:
+            logger.warning("bun not found — skipping chat widget build")
+            return
+        except subprocess.TimeoutExpired:
+            logger.error("Chat widget build timed out after 30s")
+            return
+
+        if not dist_file.exists():
+            logger.error("Chat widget build produced no output at %s", dist_file)
+            return
+
+        shutil.copy2(dist_file, output_file)
+        logger.info("✅ Chat widget built and copied to %s", output_file)
 
     def _process_snippet_markdown_file(
         self, input_path: Path, output_path: Path

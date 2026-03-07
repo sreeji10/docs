@@ -188,3 +188,10 @@ Chinook.db
 
 # VS Code
 *.code-workspace
+
+# Chat widget build output
+chat/dist/
+
+# agentic files
+agent-os
+.claude
