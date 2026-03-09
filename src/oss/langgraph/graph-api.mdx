@@ -1247,10 +1247,10 @@ def human_review(state: State):
     answer = interrupt("Do you approve?")
     return {"messages": [{"role": "user", "content": answer}]}
 
-# First invocation—hits the interrupt and pauses
+# First invocation - hits the interrupt and pauses
 result = graph.invoke({"messages": [...]}, config)
 
-# Resume with a value—the interrupt() call returns "yes"
+# Resume with a value - the interrupt() call returns "yes"
 result = graph.invoke(Command(resume="yes"), config)
 ```
 
