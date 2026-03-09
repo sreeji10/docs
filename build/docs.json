@@ -182,7 +182,8 @@
                       "pages": [
                         "langsmith/set-up-hierarchy",
                         "langsmith/workload-isolation",
-                        "langsmith/set-up-resource-tags"
+                        "langsmith/set-up-resource-tags",
+                        "langsmith/model-configurations"
                       ]
                     },
                     {
