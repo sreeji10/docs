@@ -270,7 +270,7 @@ result = graph.invoke(None, fork_config)
 
 Set `checkpointer=True` on the subgraph to give it its own checkpoint history. This creates checkpoints at each step **within** the subgraph, allowing you to time travel from a specific point inside it — for example, between two interrupts.
 
-Use @[`get_state`] with `subgraphs=True` to access the subgraph's own checkpoint config, then fork from it:
+Use [`get_state`](https://reference.langchain.com/python/langgraph/graphs/#langgraph.graph.state.CompiledStateGraph.get_state) with `subgraphs=True` to access the subgraph's own checkpoint config, then fork from it:
 
 ```python
 # Subgraph with its own checkpointer

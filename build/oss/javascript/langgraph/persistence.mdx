@@ -690,8 +690,8 @@ Under the hood, checkpointing is powered by checkpointer objects that conform to
 * `@langchain/langgraph-checkpoint`: The base interface for checkpointer savers ([`BaseCheckpointSaver`](https://reference.langchain.com/javascript/langchain-langgraph/index/BaseCheckpointSaver)) and serialization/deserialization interface ([`SerializerProtocol`](https://reference.langchain.com/javascript/langchain-langgraph-checkpoint/SerializerProtocol)). Includes in-memory checkpointer implementation ([`MemorySaver`](https://reference.langchain.com/javascript/langchain-langgraph/index/MemorySaver)) for experimentation. LangGraph comes with `@langchain/langgraph-checkpoint` included.
 * `@langchain/langgraph-checkpoint-sqlite`: An implementation of LangGraph checkpointer that uses SQLite database ([`SqliteSaver`](https://reference.langchain.com/javascript/langchain-langgraph-checkpoint-sqlite/SqliteSaver)). Ideal for experimentation and local workflows. Needs to be installed separately.
 * `@langchain/langgraph-checkpoint-postgres`: An advanced checkpointer that uses Postgres database ([`PostgresSaver`](https://reference.langchain.com/javascript/langchain-langgraph-checkpoint-postgres/index/PostgresSaver)), used in LangSmith. Ideal for using in production. Needs to be installed separately.
-* `@langchain/langgraph-checkpoint-mongodb`: An advanced checkpointer that uses MongoDB database (@[`MongoDBSaver`]). Ideal for using in production. Needs to be installed separately.
-* `@langchain/langgraph-checkpoint-redis`: An advanced checkpointer that uses Redis database (@[`RedisSaver`]). Ideal for using in production. Needs to be installed separately.
+* `@langchain/langgraph-checkpoint-mongodb`: An advanced checkpointer that uses MongoDB database (`MongoDBSaver`). Ideal for using in production. Needs to be installed separately.
+* `@langchain/langgraph-checkpoint-redis`: An advanced checkpointer that uses Redis database (`RedisSaver`). Ideal for using in production. Needs to be installed separately.
 
 
 ### Checkpointer interface
