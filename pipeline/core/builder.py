@@ -814,8 +814,15 @@ class DocumentationBuilder:
         logger.info("✅ Shared files copied: %d files", copied_count)
 
     # Maps npm dist filenames to their output names in build/snippets/
-    _NPM_SNIPPET_FILES: ClassVar[dict[str, str]] = {
+    _NPM_SNIPPET_FILES: dict[str, str] = {
+        "ChatLangChainEmbed.jsx": "chat-langchain-embed.jsx",
         "PatternEmbed.jsx": "pattern-embed.jsx",
+    }
+
+    # Maps npm dist filenames to their output names in src/ (served at site root).
+    # These are gitignored generated files kept separate from source-authored assets.
+    _NPM_SRC_FILES: dict[str, str] = {
+        "ChatLangChainEmbed.js": "ChatLangChainEmbed.js",
     }
 
     def _copy_npm_snippets(self) -> None:
@@ -848,6 +855,15 @@ class DocumentationBuilder:
             dest_file = snippets_dir / dest_name
             shutil.copy2(src_file, dest_file)
             logger.debug("Copied npm snippet: %s → snippets/%s", src_name, dest_name)
+
+        for src_name, dest_name in self._NPM_SRC_FILES.items():
+            src_file = pkg_dist / src_name
+            if not src_file.is_file():
+                logger.warning("Expected file not found in npm package: %s", src_file)
+                continue
+            dest_file = self.src_dir / dest_name
+            shutil.copy2(src_file, dest_file)
+            logger.info("Copied npm src file: %s → src/%s", src_name, dest_name)
 
     def _process_snippet_markdown_file(
         self, input_path: Path, output_path: Path

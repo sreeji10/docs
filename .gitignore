@@ -11,6 +11,9 @@ __pycache__/
 # Bluehawk-generated code snippets
 src/code-samples-generated/
 
+# npm-sourced files copied into src/ by pipeline/core/builder.py
+src/ChatLangChainEmbed.js
+
 # Distribution / packaging
 .Python
 build/
@@ -188,3 +191,7 @@ Chinook.db
 
 # VS Code
 *.code-workspace
+
+# agentic files
+agent-os
+.claude
