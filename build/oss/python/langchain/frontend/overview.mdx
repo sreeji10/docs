@@ -38,22 +38,29 @@ history, that you render with any framework.
 
 <CodeGroup>
 
-```ts Backend
-import { createAgent } from "langchain";
-import { MemorySaver } from "@langchain/langgraph";
+```python agent.py
+from langchain import create_agent
+from langgraph.checkpoint.memory import MemorySaver
 
-const agent = createAgent({
-  model: "openai:gpt-4.1",
-  tools: [getWeather, searchWeb],
-  checkpointer: new MemorySaver(),
-});
+agent = create_agent(
+    model="openai:gpt-5.4",
+    tools=[get_weather, search_web],
+    checkpointer=MemorySaver(),
+)
 ```
 
-```tsx Frontend (React)
+```ts types.ts
+export interface GraphState {
+  messages: BaseMessage[];
+}
+```
+
+```tsx Chat.tsx
 import { useStream } from "@langchain/react";
+import type { GraphState } from "./types";
 
 function Chat() {
-  const stream = useStream<typeof agent>({
+  const stream = useStream<GraphState>({
     apiUrl: "http://localhost:2024",
     assistantId: "agent",
   });
@@ -67,6 +74,10 @@ function Chat() {
   );
 }
 ```
+
+
+
+
 
 </CodeGroup>
 
