@@ -144,14 +144,14 @@ mongodb+srv://user:password@cluster.example.net/langgraph
   See the [standalone server guide](/langsmith/deploy-standalone-server) for a full Docker Compose example with MongoDB.
   </Tab>
   <Tab title="Cloud">
-  Add `LS_MONGODB_URI` as an environment variable in your deployment settings in the LangSmith UI.
+  Set `backend` to `"mongo"` in your `langgraph.json`, then add `LS_MONGODB_URI` as an environment variable in your deployment settings in the LangSmith UI.
 
   Your MongoDB instance must be reachable from the Cloud data plane. A managed service like [MongoDB Atlas](https://www.mongodb.com/atlas) works well for this.
 
   PostgreSQL is still auto-provisioned for non-checkpoint data.
   </Tab>
   <Tab title="Hybrid">
-  Set `LS_MONGODB_URI` as an environment variable through the control plane. Your MongoDB instance must be reachable from your data plane Kubernetes cluster.
+  Set `backend` to `"mongo"` in your `langgraph.json`, then set `LS_MONGODB_URI` as an environment variable through the control plane. Your MongoDB instance must be reachable from your data plane Kubernetes cluster.
   </Tab>
 </Tabs>
 
