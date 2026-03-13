@@ -19,7 +19,14 @@ export const PatternEmbed = ({
 // src/PatternEmbed.tsx
 
 // zod-shim.ts
-var VALID_GUEST_TYPES = /* @__PURE__ */ new Set(["READY", "RESIZE", "ERROR", "RUN_STARTED", "TRACE_URL"]);
+var VALID_GUEST_TYPES = /* @__PURE__ */ new Set([
+  "READY",
+  "RESIZE",
+  "ERROR",
+  "RUN_STARTED",
+  "TRACE_URL",
+  "THREAD_CLEARED"
+]);
 function stub() {
   return {
     safeParse: (data) => ({ success: true, data }),
@@ -33,9 +40,11 @@ var z = {
   literal: (_value) => stub(),
   string: () => stub(),
   number: () => stub(),
+  boolean: () => stub(),
   enum: (_values) => stub(),
   array: (_el) => stub(),
   union: (_schemas) => stub(),
+  record: (_key, _value) => stub(),
   discriminatedUnion: (_key, _schemas) => ({
     safeParse(data) {
       if (
