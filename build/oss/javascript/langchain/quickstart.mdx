@@ -1,0 +1,1335 @@
+---
+title: Quickstart
+description: Build your first agent in minutes
+---
+
+This quickstart takes you from a simple setup to a fully functional AI agent in just a few minutes. A **deep agent** is a LangChain agent with batteries included—planning, file system tools, and subagents out of the box. Use deep agents when you want maximum capability with minimal setup; choose LangChain agents when you need fine-grained control.
+
+<Tip>
+    **LangChain Docs MCP server**
+
+    If you're using an AI coding assistant or IDE (e.g. Claude Code or Cursor), you should install the [LangChain Docs MCP server](/use-these-docs) to get the most out of the docs. This ensures your agent has access to up-to-date LangChain documentation and examples.
+</Tip>
+
+## Install dependencies
+
+<Tabs default="Deep agents">
+<Tab title="Deep agents">
+
+
+
+<CodeGroup>
+    ```bash npm
+    npm install deepagents langchain @langchain/core @langchain/tavily
+    ```
+
+    ```bash yarn
+    yarn add deepagents langchain @langchain/core @langchain/tavily
+    ```
+
+    ```bash pnpm
+    pnpm add deepagents langchain @langchain/core @langchain/tavily
+    ```
+</CodeGroup>
+
+
+
+</Tab>
+<Tab title="LangChain">
+
+
+
+    <CodeGroup>
+    ```bash npm
+    npm install langchain @langchain/core @langchain/tavily
+    # Requires Node.js 20+
+    ```
+
+    ```bash pnpm
+    pnpm add langchain @langchain/core @langchain/tavily
+    # Requires Node.js 20+
+    ```
+
+    ```bash yarn
+    yarn add langchain @langchain/core @langchain/tavily
+    # Requires Node.js 20+
+    ```
+
+    ```bash bun
+    bun add langchain @langchain/core @langchain/tavily
+    # Requires Bun v1.0.0+
+    ```
+    </CodeGroup>
+
+
+</Tab>
+</Tabs>
+
+<Note>
+    This guide uses [Tavily](https://tavily.com/) as an example search provider, but you can substitute any search API (e.g., DuckDuckGo, SerpAPI, Brave Search).
+</Note>
+
+## Set up API keys
+
+Get an API key from [any supported model provider](/oss/javascript/integrations/providers/overview) (for example, Claude (Anthropic) or OpenAI).
+If you are following along with the Tavily example, also get a Tavily API key.
+
+Set the API keys, for example:
+
+<CodeGroup>
+    ```bash Claude (Anthropic)
+    export ANTHROPIC_API_KEY="your-api-key"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash OpenAI
+    export OPENAI_API_KEY="your-api-key"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash Google Gemini
+    export GOOGLE_API_KEY="your-api-key"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash OpenRouter
+    export OPENROUTER_API_KEY="your-api-key"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash Fireworks
+    export FIREWORKS_API_KEY="your-api-key"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash Baseten
+    export BASETEN_API_KEY="your-api-key"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash Ollama
+    # Local: Ollama must be running (https://ollama.com)
+    # Cloud: Set your Ollama API key for hosted inference
+    export OLLAMA_API_KEY="your-api-key"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash Azure
+    export AZURE_OPENAI_API_KEY="your-api-key"
+    export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
+    export AZURE_OPENAI_DEPLOYMENT_NAME="your-deployment"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash AWS Bedrock
+    export AWS_ACCESS_KEY_ID="your-access-key"
+    export AWS_SECRET_ACCESS_KEY="your-secret-key"
+    export AWS_REGION="us-east-1"
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+    ```bash HuggingFace
+    export HUGGINGFACEHUB_API_TOKEN="hf_..."
+    export TAVILY_API_KEY="your-tavily-api-key"
+    ```
+</CodeGroup>
+
+## Build a basic agent
+
+Start by creating a simple agent that can answer questions and call tools. The agent in this example uses the specified language model, a basic weather function as a tool, and a simple prompt to guide its behavior:
+
+<Tabs default="Deep agents">
+<Tab title="Deep agents">
+
+
+
+<CodeGroup>
+    ```ts Claude (Anthropic)
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "claude-sonnet-4-6",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts OpenAI
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "gpt-5.2",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Google Gemini
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "google-genai:gemini-2.5-flash-lite",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts OpenRouter
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "openrouter:anthropic/claude-sonnet-4-6",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Fireworks
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "fireworks:accounts/fireworks/models/qwen3p5-397b-a17b",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Baseten
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "baseten:zai-org/GLM-5",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Ollama
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "ollama:devstral-2",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Azure
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "azure_openai:gpt-5.2",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts AWS Bedrock
+    import * as z from "zod";
+    import { createDeepAgent } from "deepagents";
+    import { tool } from "langchain";
+
+    const getWeather = tool(
+      ({ city }) => `It's always sunny in ${city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string(),
+        }),
+      },
+    );
+
+    const agent = createDeepAgent({
+      model: "bedrock:gpt-5.2",
+      tools: [getWeather],
+      system: "You are a helpful assistant",
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+</CodeGroup>
+
+
+<Tip>
+    You can use any model that supports [tool calling](/oss/javascript/langchain/models#tool-calling) by changing the model name in the code and setting up the appropriate API key.
+</Tip>
+
+</Tab>
+<Tab title="LangChain">
+
+
+
+<CodeGroup>
+    ```ts Claude (Anthropic)
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "claude-sonnet-4-6",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts OpenAI
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "gpt-5.2",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Google Gemini
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "google-genai:gemini-2.5-flash-lite",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts OpenRouter
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "openrouter:anthropic/claude-sonnet-4-6",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Fireworks
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "fireworks:accounts/fireworks/models/qwen3p5-397b-a17b",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Baseten
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "baseten:zai-org/GLM-5",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Ollama
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "ollama:devstral-2",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts Azure
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "azure_openai:gpt-5.2",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+    ```ts AWS Bedrock
+    import { createAgent, tool } from "langchain";
+    import * as z from "zod";
+
+    const getWeather = tool(
+      (input) => `It's always sunny in ${input.city}!`,
+      {
+        name: "get_weather",
+        description: "Get the weather for a given city",
+        schema: z.object({
+          city: z.string().describe("The city to get the weather for"),
+        }),
+      }
+    );
+
+    const agent = createAgent({
+      model: "bedrock:gpt-5.2",
+      tools: [getWeather],
+    });
+
+    console.log(
+      await agent.invoke({
+        messages: [{ role: "user", content: "What's the weather in Tokyo?" }],
+      })
+    );
+    ```
+</CodeGroup>
+
+
+<Tip>
+    You can use [any supported model](/oss/javascript/integrations/providers/overview) by changing the model name in the code and setting up the appropriate API key.
+</Tip>
+
+</Tab>
+</Tabs>
+
+## Build a real-world agent
+
+When building real-world agents, both LangChain and deep agents provide you with fine-grained control over tools, memory, and structured ouput.
+The main difference between both is that deep agents come with a range of commonly useful capabilities already built in.
+
+By following this example you will build a research agent that can conduct research and write reports.
+Along the way you will explore the following concepts:
+
+1. **Detailed system prompts** for better agent behavior
+2. **Create tools** that integrate with external data
+3. **Model configuration** for consistent responses
+4. **Structured output** for predictable results
+5. **Conversational memory** for chat-like interactions
+6. **Testing** your agent and using tracing
+
+<Steps>
+    <Step title="Define the system prompt">
+
+    The system prompt defines your agent’s role and behavior. Keep it specific and actionable:
+
+
+
+    ```ts wrap
+    const systemPrompt = `You are an expert researcher. Your job is to conduct thorough research and then write a polished report.
+
+    You have access to the following tools:
+
+    ## \`get_user_location\`
+
+    Use this first to retrieve the user's location based on their user ID. Call this before researching so you know where the user is located.
+
+    ## \`internet_search\`
+
+    Use this to run an internet search for a given query. You can specify the max number of results to return, the topic, and whether raw content should be included.`;
+    ```
+
+
+    </Step>
+    <Step title="Create tools">
+
+        [Tools](/oss/javascript/langchain/tools) let a model interact with external systems by calling functions you define.
+        Tools can depend on [runtime context](/oss/javascript/langchain/runtime) and also interact with [agent memory](/oss/javascript/langchain/short-term-memory).
+
+        This example uses two tools, one for internet searches and one for obtaining the user's location based on their user ID.
+
+
+
+        ```ts
+        import { tool } from "langchain";
+        import { TavilySearch } from "@langchain/tavily";
+        import type { ToolRuntime } from "langchain";
+        import * as z from "zod";
+
+
+        const contextSchema = z.object({
+            user_id: z.string(),
+        });
+
+        type AgentRuntime = ToolRuntime<unknown, { user_id: string }>;
+
+        const getUserLocation = tool(
+            (_, config: AgentRuntime) => {
+                const { user_id } = config.context;
+                return user_id === "1" ? "France" : "Netherlands";
+            },
+            {
+                name: "get_user_location",
+                description: "Retrieve user information based on user ID",
+            },
+        );
+
+        const internetSearch = tool(
+            async ({
+                query,
+                maxResults = 5,
+                topic = "general",
+                includeRawContent = false,
+            }: {
+                query: string;
+                maxResults?: number;
+                topic?: "general" | "news" | "finance";
+                includeRawContent?: boolean;
+            }) => {
+                const tavilySearch = new TavilySearch({
+                    maxResults,
+                    tavilyApiKey: process.env.TAVILY_API_KEY,
+                    includeRawContent,
+                    topic,
+                });
+                return await tavilySearch._call({ query });
+            },
+            {
+                name: "internet_search",
+                description: "Run a web search",
+                schema: z.object({
+                query: z.string().describe("The search query"),
+                maxResults: z
+                    .number()
+                    .optional()
+                    .default(5)
+                    .describe("Maximum number of results to return"),
+                topic: z
+                    .enum(["general", "news", "finance"])
+                    .optional()
+                    .default("general")
+                    .describe("Search topic category"),
+                includeRawContent: z
+                    .boolean()
+                    .optional()
+                    .default(false)
+                    .describe("Whether to include raw content"),
+                }),
+            },
+        );
+        ```
+
+        <Note>
+            [Zod](https://zod.dev/) is a library for validating and parsing pre-defined schemas. You can use it to define the input schema for your tools to make sure the agent only calls the tool with the correct arguments.
+
+            Alternatively, you can define the `schema` property as a [JSON schema](https://json-schema.org/overview/what-is-jsonschema) object. Keep in mind that JSON schemas **won't** be validated at runtime.
+
+            <Accordion title="Example: Using JSON schema for tool input">
+                ```ts
+                const internetSearch = tool(
+                    async ({
+                        query,
+                        maxResults = 5,
+                        topic = "general",
+                        includeRawContent = false,
+                    }: {
+                        query: string;
+                        maxResults?: number;
+                        topic?: "general" | "news" | "finance";
+                        includeRawContent?: boolean;
+                    }) => {
+                        const tavilySearch = new TavilySearch({
+                        maxResults,
+                        tavilyApiKey: process.env.TAVILY_API_KEY,
+                        includeRawContent,
+                        topic,
+                        });
+                        return await tavilySearch._call({ query });
+                    },
+                    {
+                        name: "internet_search",
+                        description: "Run a web search",
+                        schema: {
+                        type: "object",
+                        properties: {
+                            query: {
+                            type: "string",
+                            description: "The search query",
+                            },
+                            maxResults: {
+                            type: "number",
+                            description: "Maximum number of results to return",
+                            default: 5,
+                            },
+                            topic: {
+                            type: "string",
+                            enum: ["general", "news", "finance"],
+                            description: "Search topic category",
+                            default: "general",
+                            },
+                            includeRawContent: {
+                            type: "boolean",
+                            description: "Whether to include raw content",
+                            default: false,
+                            },
+                        },
+                        required: ["query"],
+                        },
+                    },
+                );
+                ```
+            </Accordion>
+        </Note>
+
+
+    </Step>
+    <Step title="Configure your model">
+        Set up your [language model](/oss/javascript/langchain/models) with the right parameters for your use case:
+
+
+
+        ```ts
+        import { initChatModel } from "langchain";
+
+        const model = await initChatModel(
+          "claude-sonnet-4-6",
+          { temperature: 0.5, timeout: 10, maxTokens: 1000 }
+        );
+        ```
+
+
+        Depending on the model and provider chosen, initialization parameters may vary; refer to their reference pages for details.
+    </Step>
+    <Step title="Define response format">
+
+        Optionally, define a structured response format if you need the agent responses to match
+        a specific schema.
+
+
+
+        ```ts
+        import { toolStrategy } from "langchain";
+
+        const responseFormatSchema = z.object({
+        one_paragraph_response: z.string(),
+        fun_facts: z.string().optional(),
+        });
+
+        const responseFormat = toolStrategy(responseFormatSchema);
+        ```
+
+
+    </Step>
+    <Step title="Add memory">
+
+        Add [memory](/oss/javascript/langchain/short-term-memory) to your agent to maintain state across interactions. This allows
+        the agent to remember previous conversations and context.
+
+
+
+        ```ts
+        import { MemorySaver } from "@langchain/langgraph";
+
+        const checkpointer = new MemorySaver();
+        ```
+
+
+        <Info>
+            In production, use a persistent checkpointer that saves message history to a database.
+            See [Add and manage memory](/oss/javascript/langgraph/add-memory#manage-short-term-memory) for more details.
+        </Info>
+
+    </Step>
+    <Step title="Create and run the agent">
+
+        Now assemble your agent with all the components and run it:
+
+        <Tabs default="Deep agents">
+        <Tab title="Deep agents">
+
+
+
+        ```ts
+        import { createDeepAgent } from "deepagents";
+
+        const agent = await createDeepAgent({
+            model,
+            tools: [getUserLocation, internetSearch] as any,
+            systemPrompt: systemPrompt,
+            responseFormat,
+            contextSchema,
+            checkpointer,
+        });
+
+        const content =
+            "What is the capital of the user's location? First use get_user_location to find where the user is, then write a report in markdown format.";
+
+        // thread_id is a unique identifier for a given conversation
+        const result = await agent.invoke(
+            {
+                messages: [{ role: "user", content }],
+            },
+            {
+                configurable: { thread_id: "123456" },
+                context: { user_id: "1" }, // "1" -> France, other -> Netherlands
+                timeout: 300_000, // 5 min - agent does search + multiple model calls
+            },
+        );
+
+        console.log(result.messages[result.messages.length - 1].content);
+        console.log("--------------------------------");
+        console.log(result.structuredResponse);
+        console.log("--------------------------------");
+        ```
+
+
+        </Tab>
+        <Tab title="LangChain agents">
+
+
+
+        ```ts
+        import { createAgent } from "langchain";
+
+        const agent = createAgent({
+        model: "claude-sonnet-4-6",
+        systemPrompt: systemPrompt,
+        tools: [getUserLocation, internetSearch],
+        responseFormat,
+        checkpointer,
+        });
+
+        // `thread_id` is a unique identifier for a given conversation.
+        const config = {
+        configurable: { thread_id: "1" },
+        context: { user_id: "1" },
+        };
+
+        const content =
+        "What is the capital of the user's location? First use get_user_location to find where the user is, then research and provide your answer using the structured output tool.";
+
+        // thread_id is a unique identifier for a given conversation
+        const result = await agent.invoke(
+        {
+            messages: [{ role: "user", content }],
+        },
+        config,
+        );
+
+        console.log(result.messages[result.messages.length - 1].content);
+        console.log("--------------------------------");
+        console.log(result.structuredResponse);
+        console.log("--------------------------------");
+        ```
+
+
+        </Tab>
+        </Tabs>
+
+    </Step>
+</Steps>
+
+<Expandable title="Full example code">
+
+<Tabs default="Deep agents">
+    <Tab title="Deep agents">
+
+
+
+        ```ts
+        import "dotenv/config";
+        import { toolStrategy, tool, initChatModel } from "langchain";
+        import { TavilySearch } from "@langchain/tavily";
+        import { createDeepAgent } from "deepagents";
+        import { MemorySaver } from "@langchain/langgraph";
+        import type { ToolRuntime } from "langchain";
+        import * as z from "zod";
+
+        const systemPrompt = `You are an expert researcher. Your job is to conduct thorough research and then write a polished report.
+
+        You have access to the following tools:
+
+        ## \`get_user_location\`
+
+        Use this first to retrieve the user's location based on their user ID. Call this before researching so you know where the user is located.
+
+        ## \`internet_search\`
+
+        Use this to run an internet search for a given query. You can specify the max number of results to return, the topic, and whether raw content should be included.`;
+
+        const contextSchema = z.object({
+            user_id: z.string(),
+        });
+
+        type AgentRuntime = ToolRuntime<unknown, { user_id: string }>;
+
+        const getUserLocation = tool(
+            (_, config: AgentRuntime) => {
+                const { user_id } = config.context;
+                return user_id === "1" ? "France" : "Netherlands";
+            },
+            {
+                name: "get_user_location",
+                description: "Retrieve user information based on user ID",
+            },
+        );
+
+        const internetSearch = tool(
+            async ({
+                query,
+                maxResults = 5,
+                topic = "general",
+                includeRawContent = false,
+            }: {
+                query: string;
+                maxResults?: number;
+                topic?: "general" | "news" | "finance";
+                includeRawContent?: boolean;
+            }) => {
+                const tavilySearch = new TavilySearch({
+                maxResults,
+                tavilyApiKey: process.env.TAVILY_API_KEY,
+                includeRawContent,
+                topic,
+                });
+                return await tavilySearch._call({ query });
+            },
+            {
+                name: "internet_search",
+                description: "Run a web search",
+                schema: z.object({
+                query: z.string().describe("The search query"),
+                maxResults: z
+                    .number()
+                    .optional()
+                    .default(5)
+                    .describe("Maximum number of results to return"),
+                topic: z
+                    .enum(["general", "news", "finance"])
+                    .optional()
+                    .default("general")
+                    .describe("Search topic category"),
+                includeRawContent: z
+                    .boolean()
+                    .optional()
+                    .default(false)
+                    .describe("Whether to include raw content"),
+                }),
+            },
+        );
+
+        const model = await initChatModel("claude-sonnet-4-6", {
+            temperature: 0.5,
+            timeout: 10,
+            maxTokens: 1000,
+        });
+
+        const responseFormatSchema = z.object({
+            one_paragraph_response: z.string(),
+            fun_facts: z.string().optional(),
+        });
+
+        const responseFormat = toolStrategy(responseFormatSchema);
+
+        const checkpointer = new MemorySaver();
+
+        const agent = await createDeepAgent({
+            model,
+            tools: [getUserLocation, internetSearch] as any,
+            systemPrompt: systemPrompt,
+            responseFormat: responseFormat as any,
+            contextSchema,
+            checkpointer,
+        });
+
+        const content =
+            "What is the capital of the user's location? First use get_user_location to find where the user is, then write a report in markdown format.";
+
+        // thread_id is a unique identifier for a given conversation
+        const result = await agent.invoke(
+            {
+                messages: [{ role: "user", content }],
+            },
+            {
+                configurable: { thread_id: "123456" },
+                context: { user_id: "1" }, // "1" -> France, other -> Netherlands
+                timeout: 300_000, // 5 min - agent does search + multiple model calls
+            },
+        );
+
+        console.log(result.messages[result.messages.length - 1].content);
+        console.log("--------------------------------");
+        console.log(result.structuredResponse);
+        console.log("--------------------------------");
+        ```
+
+
+    </Tab>
+    <Tab title="LangChain agents">
+
+
+
+        ```ts
+        import "dotenv/config";
+        import { createAgent, toolStrategy, tool, initChatModel } from "langchain";
+        import { TavilySearch } from "@langchain/tavily";
+        import { MemorySaver } from "@langchain/langgraph";
+        import type { ToolRuntime } from "langchain";
+        import * as z from "zod";
+
+        const systemPrompt = `You are an expert researcher. Your job is to conduct thorough research and then write a polished report.
+
+        You have access to the following tools:
+
+        ## \`get_user_location\`
+
+        Use this first to retrieve the user's location based on their user ID. Call this before researching so you know where the user is located.
+
+        ## \`internet_search\`
+
+        Use this to run an internet search for a given query. You can specify the max number of results to return, the topic, and whether raw content should be included.`;
+
+        type AgentRuntime = ToolRuntime<unknown, { user_id: string }>;
+
+        const getUserLocation = tool(
+        (_, config: AgentRuntime) => {
+            const { user_id } = config.context;
+            return user_id === "1" ? "France" : "Netherlands";
+        },
+        {
+            name: "get_user_location",
+            description: "Retrieve user information based on user ID",
+        },
+        );
+
+        const internetSearch = tool(
+        async ({
+            query,
+            maxResults = 5,
+            topic = "general",
+            includeRawContent = false,
+        }: {
+            query: string;
+            maxResults?: number;
+            topic?: "general" | "news" | "finance";
+            includeRawContent?: boolean;
+        }) => {
+            const tavilySearch = new TavilySearch({
+            maxResults,
+            tavilyApiKey: process.env.TAVILY_API_KEY,
+            includeRawContent,
+            topic,
+            });
+            return await tavilySearch._call({ query });
+        },
+        {
+            name: "internet_search",
+            description: "Run a web search",
+            schema: z.object({
+            query: z.string().describe("The search query"),
+            maxResults: z
+                .number()
+                .optional()
+                .default(5)
+                .describe("Maximum number of results to return"),
+            topic: z
+                .enum(["general", "news", "finance"])
+                .optional()
+                .default("general")
+                .describe("Search topic category"),
+            includeRawContent: z
+                .boolean()
+                .optional()
+                .default(false)
+                .describe("Whether to include raw content"),
+            }),
+        },
+        );
+
+        const model = await initChatModel("claude-sonnet-4-6", {
+        temperature: 0.5,
+        timeout: 10,
+        maxTokens: 1000,
+        });
+
+        const responseFormatSchema = z.object({
+        one_paragraph_response: z.string(),
+        fun_facts: z.string().optional(),
+        });
+
+        const responseFormat = toolStrategy(responseFormatSchema);
+
+        const checkpointer = new MemorySaver();
+
+        const agent = createAgent({
+        model: "claude-sonnet-4-6",
+        systemPrompt: systemPrompt,
+        tools: [getUserLocation, internetSearch],
+        responseFormat,
+        checkpointer,
+        });
+
+        // `thread_id` is a unique identifier for a given conversation.
+        const config = {
+        configurable: { thread_id: "1" },
+        context: { user_id: "1" },
+        };
+
+        const content =
+        "What is the capital of the user's location? First use get_user_location to find where the user is, then research and provide your answer using the structured output tool.";
+
+        // thread_id is a unique identifier for a given conversation
+        const result = await agent.invoke(
+        {
+            messages: [{ role: "user", content }],
+        },
+        config,
+        );
+
+        console.log(result.messages[result.messages.length - 1].content);
+        console.log("--------------------------------");
+        console.log(result.structuredResponse);
+        console.log("--------------------------------");
+        ```
+
+
+        </Tab>
+    </Tabs>
+</Expandable>
+
+## Test your agent
+
+Start by running your script.
+You may get different output than we did:
+
+<Tabs default="Deep agents">
+<Tab title="Deep agents">
+
+
+
+```ts wrap
+Returning structured response: {"one_paragraph_response":"Based on the user's location (France) and research conducted, the capital of France is **Paris**. Paris is the largest city in France, located in the northern part of the country on the banks of the Seine River. It has been the capital since 987 AD (with brief interruptions during wartime). The Greater Paris metropolitan area has a population of approximately 13 million people. Paris is renowned globally as a center of art, fashion, culture, history, and commerce, often called the \"City of Light.\" It serves as the seat of the French government and is home to iconic landmarks such as the Eiffel Tower, the Louvre, and Notre-Dame Cathedral.","fun_facts":"Paris has been the capital of France since 987 AD. The city underwent major architectural transformations in the 19th century under Baron Haussmann. During both World Wars, the French government temporarily relocated the capital to other cities (Bordeaux and Tours) when Paris was threatened by German forces."}
+--------------------------------
+{
+  one_paragraph_response: `Based on the user's location (France) and research conducted, the capital of France is **Paris**. Paris is the largest city in France, located in the northern part of the country on the banks of the Seine River. It has been the capital since 987 AD (with brief interruptions during wartime). The Greater Paris metropolitan area has a population of approximately 13 million people. Paris is renowned globally as a center of art, fashion, culture, history, and commerce, often called the "City of Light." It serves as the seat of the French government and is home to iconic landmarks such as the Eiffel Tower, the Louvre, and Notre-Dame Cathedral.`,
+  fun_facts: 'Paris has been the capital of France since 987 AD. The city underwent major architectural transformations in the 19th century under Baron Haussmann. During both World Wars, the French government temporarily relocated the capital to other cities (Bordeaux and Tours) when Paris was threatened by German forces.'
+}
+--------------------------------
+```
+
+
+</Tab>
+<Tab title="LangChain agents">
+
+
+
+```ts wrap
+Returning structured response: {"one_paragraph_response":"Based on your detected location of **France**, the capital is **Paris**. Paris is the capital and largest city of France, situated in the northern part of the country along the banks of the Seine River. It has served as the seat of the French government since 987 AD (with brief interruptions during wartime). The Greater Paris metropolitan area is home to approximately 13 million people, making it one of Europe's most populous urban regions. The city underwent major urban transformation in the 19th century under Baron Haussmann, who redesigned its streets and infrastructure, giving Paris the iconic architectural character it is known for today.","fun_facts":"1. Paris has been the capital of France since 987 AD, though it briefly lost that status during wartime events like the Hundred Years' War and both World Wars. 2. The Greater Paris metropolitan area has a population of around 13 million people. 3. Paris sits on the banks of the Seine River in northern France. 4. Baron Haussmann redesigned the city's streets and infrastructure in the 19th century, shaping its modern look."}
+--------------------------------
+{
+  one_paragraph_response: "Based on your detected location of **France**, the capital is **Paris**. Paris is the capital and largest city of France, situated in the northern part of the country along the banks of the Seine River. It has served as the seat of the French government since 987 AD (with brief interruptions during wartime). The Greater Paris metropolitan area is home to approximately 13 million people, making it one of Europe's most populous urban regions. The city underwent major urban transformation in the 19th century under Baron Haussmann, who redesigned its streets and infrastructure, giving Paris the iconic architectural character it is known for today.",
+  fun_facts: "1. Paris has been the capital of France since 987 AD, though it briefly lost that status during wartime events like the Hundred Years' War and both World Wars. 2. The Greater Paris metropolitan area has a population of around 13 million people. 3. Paris sits on the banks of the Seine River in northern France. 4. Baron Haussmann redesigned the city's streets and infrastructure in the 19th century, shaping its modern look."
+}
+--------------------------------
+```
+
+
+</Tab>
+</Tabs>
+
+If you look at the output on both tabs, you notice an immediate difference in the structure and length of the responses.
+
+A deep agent automatically:
+
+1. **Plans its approach** using the built-in [`write_todos`](/oss/javascript/deepagents/harness#planning-capabilities) tool to break down the research task.
+1. **Conducts research** by calling the `internet_search` tool to gather information.
+1. **Manages context** by using file system tools ([`write_file`](/oss/javascript/deepagents/harness#virtual-filesystem-access), [`read_file`](/oss/javascript/deepagents/harness#virtual-filesystem-access)) to offload large search results.
+1. **Spawns subagents** as needed to delegate complex subtasks to specialized subagents.
+1. **Synthesizes a report** to compile findings into a coherent response.
+
+For LangChain agents, you must implement more capabilities to get a similar level of service and can customize them along the way as needed.
+
+## Trace agent calls
+
+Most interesting applications you build with LangChain make many calls to LLMs. As these applications get more complex, it becomes important to be able to inspect what exactly is going on inside your agent. The best way to do this is with [LangSmith](https://smith.langchain.com).
+
+Sign up for a [LangSmith](https://smith.langchain.com) account and set these to start logging traces:
+
+```shell
+export LANGSMITH_TRACING="true"
+export LANGSMITH_API_KEY="..."
+```
+
+Once set, run your script again and then inspect what happened during your agent calls on [LangSmith](https://smith.langchain.com) .
+
+<Tip>
+    To learn more about tracing your agent with LangSmith, see the [LangSmith documentation](/langsmith/trace-with-langchain).
+</Tip>
+
+## Next steps
+
+You now have agents that can:
+
+- **Understand context** and remember conversations
+- **Use tools** intelligently
+- **Provide structured responses** in a consistent format
+- **Handle user-specific information** through context
+- **Maintain conversation state** across interactions
+- **Plan, research, and synthesize** (deep agents only)
+
+Continue with:
+
+- **LangChain agents**: [Add and manage memory](/oss/javascript/langgraph/add-memory#manage-short-term-memory), [deploy to production](/oss/javascript/langgraph/deploy)
+- **Deep agents**: [Customization options](/oss/javascript/deepagents/customization), [persistent memory](/oss/javascript/deepagents/long-term-memory), [deploy to production](/oss/javascript/langgraph/deploy)
+
+---
+
+<div className="source-links">
+<Callout icon="edit">
+    [Edit this page on GitHub](https://github.com/langchain-ai/docs/edit/main/src/oss/langchain/quickstart.mdx) or [file an issue](https://github.com/langchain-ai/docs/issues/new/choose).
+</Callout>
+<Callout icon="terminal-2">
+    [Connect these docs](/use-these-docs) to Claude, VSCode, and more via MCP for real-time answers.
+</Callout>
+</div>
