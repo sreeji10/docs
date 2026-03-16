@@ -1,9 +1,14 @@
 ---
 title: Overview
-description: Build generative UIs with real-time streaming from LangChain agents
+description: Build generative UIs with real-time streaming from LangChain and deep agents
 ---
 
-Build rich, interactive frontends for agents created with `createAgent`. These patterns cover everything from basic message rendering to advanced workflows like human-in-the-loop approval and time travel debugging.
+Build rich, interactive frontends for agents. Use `createAgent` for single-agent workflows or `createDeepAgent` for coordinator-worker architectures with subagents. Both stream state to the frontend via the `useStream` hook.
+
+<Tabs default="LangChain">
+<Tab title="LangChain">
+
+Build frontends for agents created with `createAgent`. These patterns cover everything from basic message rendering to advanced workflows like human-in-the-loop approval and time travel debugging.
 
 ## Architecture
 
@@ -110,6 +115,103 @@ function Chat() {
 
 </CodeGroup>
 
+</Tab>
+<Tab title="Deep agents">
+
+Build frontends that visualize deep agent workflows in real time. These patterns show how to render subagent progress, task planning, and streaming content from agents created with `createDeepAgent`.
+
+## Architecture
+
+Deep agents use a coordinator-worker architecture. The main agent plans tasks and delegates to specialized subagents, each running in isolation. On the frontend, `useStream` surfaces both the coordinator's messages and each subagent's streaming state.
+
+```mermaid
+%%{
+  init: {
+    "fontFamily": "monospace",
+    "flowchart": {
+      "curve": "curve"
+    }
+  }
+}%%
+graph LR
+  FRONTEND["useStream()"]
+  BACKEND["createDeepAgent()"]
+  SUB1["Subagent A"]
+  SUB2["Subagent B"]
+
+  BACKEND --"stream"--> FRONTEND
+  FRONTEND --"submit"--> BACKEND
+  BACKEND --"delegate"--> SUB1
+  BACKEND --"delegate"--> SUB2
+  SUB1 --"result"--> BACKEND
+  SUB2 --"result"--> BACKEND
+
+  classDef blueHighlight fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A;
+  classDef greenHighlight fill:#DCFCE7,stroke:#16A34A,color:#14532D;
+  classDef purpleHighlight fill:#EDE9FE,stroke:#7C3AED,color:#4C1D95;
+  class FRONTEND blueHighlight;
+  class BACKEND greenHighlight;
+  class SUB1,SUB2 purpleHighlight;
+```
+
+:::python
+
+```python
+from deepagents import create_deep_agent
+
+agent = create_deep_agent(
+    tools=[get_weather],
+    system_prompt="You are a helpful assistant",
+    subagents=[
+        {
+            "name": "researcher",
+            "description": "Research assistant",
+        }
+    ],
+)
+```
+
+:::
+
+:::js
+
+```ts
+import { createDeepAgent } from "deepagents";
+
+const agent = createDeepAgent({
+  tools: [getWeather],
+  system: "You are a helpful assistant",
+  subagents: [
+    {
+      name: "researcher",
+      description: "Research assistant",
+    },
+  ],
+});
+```
+
+:::
+
+On the frontend, connect with `useStream` the same way as with `createAgent`. Deep agent patterns use additional `useStream` features like `stream.subagents`, `stream.values.todos`, and `filterSubagentMessages` to render subagent-specific UIs.
+
+```ts
+import { useStream } from "@langchain/react";
+
+function App() {
+  const stream = useStream<typeof agent>({
+    apiUrl: "http://localhost:2024",
+    assistantId: "agent",
+  });
+
+  // Deep agent state beyond messages
+  const todos = stream.values?.todos;
+  const subagents = stream.subagents;
+}
+```
+
+</Tab>
+</Tabs>
+
 `useStream` is available for React, Vue, Svelte, and Angular:
 
 ```ts
@@ -182,5 +284,16 @@ import { useStream } from "@langchain/angular";  // Angular
   </Card>
   <Card title="assistant-ui" icon="package" href="/oss/langchain/frontend/integrations#assistant-ui">
     Headless React framework with thread management, message branching, and a ready-to-use `<Thread />` component. Connects via `useExternalStoreRuntime`.
+  </Card>
+</CardGroup>
+
+### Deep agent patterns
+
+<CardGroup cols={3}>
+  <Card title="Subagent streaming" icon="arrows-split" href="/oss/deepagents/frontend/subagent-streaming">
+    Display specialist subagents with streaming content, progress tracking, and collapsible cards.
+  </Card>
+  <Card title="Todo list" icon="list-check" href="/oss/deepagents/frontend/todo-list">
+    Track agent progress with a real-time todo list synced from agent state.
   </Card>
 </CardGroup>

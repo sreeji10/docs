@@ -968,21 +968,23 @@
               },
               "tabs": [
                 {
-                  "tab": "Deep Agents",
+                  "tab": "Agents",
                   "pages": [
-                    "oss/python/deepagents/overview",
+                    "oss/python/langchain/overview",
                     {
                       "group": "Get started",
                       "pages": [
-                        "oss/python/deepagents/quickstart",
-                        "oss/python/deepagents/customization",
+                        "oss/python/langchain/quickstart",
                         "oss/python/deepagents/comparison",
-                        "oss/python/deepagents/changelog-py"
+                        "oss/python/langchain/philosophy",
+                        "oss/python/deepagents/changelog-py",
+                        "oss/python/langchain/changelog-py"
                       ]
                     },
                     {
-                      "group": "Core capabilities",
+                      "group": "Deep agents capabilities",
                       "pages": [
+                        "oss/python/deepagents/customization",
                         "oss/python/deepagents/models",
                         "oss/python/deepagents/harness",
                         "oss/python/deepagents/backends",
@@ -995,45 +997,13 @@
                       ]
                     },
                     {
-                      "group": "Frontend",
-                      "pages": [
-                        "oss/python/deepagents/frontend/overview",
-                        "oss/python/deepagents/frontend/subagent-streaming",
-                        "oss/python/deepagents/frontend/todo-list"
-                      ]
-                    },
-                    {
-                      "group": "Protocols",
+                      "group": "Deep agents Protocols",
                       "pages": [
                         "oss/python/deepagents/acp"
                       ]
                     },
                     {
-                      "group": "Command line interface",
-                      "pages": [
-                        "oss/python/deepagents/cli/overview",
-                        "oss/python/deepagents/cli/providers",
-                        "oss/python/deepagents/cli/configuration",
-                        "oss/python/deepagents/cli/mcp-tools"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "tab": "LangChain",
-                  "pages": [
-                    "oss/python/langchain/overview",
-                    {
-                      "group": "Get started",
-                      "pages": [
-                        "oss/python/langchain/install",
-                        "oss/python/langchain/quickstart",
-                        "oss/python/langchain/changelog-py",
-                        "oss/python/langchain/philosophy"
-                      ]
-                    },
-                    {
-                      "group": "Core components",
+                      "group": "LangChain Core components",
                       "pages": [
                         "oss/python/langchain/agents",
                         "oss/python/langchain/models",
@@ -1045,7 +1015,7 @@
                       ]
                     },
                     {
-                      "group": "Middleware",
+                      "group": "LangChain Middleware",
                       "pages": [
                         "oss/python/langchain/middleware/overview",
                         "oss/python/langchain/middleware/built-in",
@@ -1066,7 +1036,9 @@
                         "oss/python/langchain/frontend/join-rejoin",
                         "oss/python/langchain/frontend/time-travel",
                         "oss/python/langchain/frontend/generative-ui",
-                        "oss/python/langchain/frontend/integrations"
+                        "oss/python/langchain/frontend/integrations",
+                        "oss/python/deepagents/frontend/subagent-streaming",
+                        "oss/python/deepagents/frontend/todo-list"
                       ]
                     },
                     {
@@ -1113,6 +1085,15 @@
                       "pages": [
                         "oss/python/langchain/deploy",
                         "oss/python/langchain/observability"
+                      ]
+                    },
+                    {
+                      "group": "Command line interface",
+                      "pages": [
+                        "oss/python/deepagents/cli/overview",
+                        "oss/python/deepagents/cli/providers",
+                        "oss/python/deepagents/cli/configuration",
+                        "oss/python/deepagents/cli/mcp-tools"
                       ]
                     }
                   ]
@@ -1374,20 +1355,21 @@
               },
               "tabs": [
                 {
-                  "tab": "Deep Agents",
+                  "tab": "Agents",
                   "pages": [
-                    "oss/javascript/deepagents/overview",
+                    "oss/javascript/langchain/overview",
                     {
                       "group": "Get started",
                       "pages": [
-                        "oss/javascript/deepagents/quickstart",
-                        "oss/javascript/deepagents/customization",
+                        "oss/javascript/langchain/quickstart",
                         "oss/javascript/deepagents/comparison",
-                        "oss/javascript/deepagents/changelog-js"
+                        "oss/javascript/langchain/philosophy",
+                        "oss/javascript/deepagents/changelog-js",
+                        "oss/javascript/langchain/changelog-js"
                       ]
                     },
                     {
-                      "group": "Core capabilities",
+                      "group": "Deep agents capabilities",
                       "pages": [
                         "oss/javascript/deepagents/models",
                         "oss/javascript/deepagents/harness",
@@ -1401,37 +1383,7 @@
                     },
                     "oss/javascript/deepagents/streaming",
                     {
-                      "group": "Frontend",
-                      "pages": [
-                        "oss/javascript/deepagents/frontend/overview",
-                        "oss/javascript/deepagents/frontend/subagent-streaming",
-                        "oss/javascript/deepagents/frontend/todo-list"
-                      ]
-                    },
-                    {
-                      "group": "Deep Agents CLI",
-                      "pages": [
-                        "oss/javascript/deepagents/cli/overview",
-                        "oss/javascript/deepagents/cli/providers"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "tab": "LangChain",
-                  "pages": [
-                    "oss/javascript/langchain/overview",
-                    {
-                      "group": "Get started",
-                      "pages": [
-                        "oss/javascript/langchain/install",
-                        "oss/javascript/langchain/quickstart",
-                        "oss/javascript/langchain/changelog-js",
-                        "oss/javascript/langchain/philosophy"
-                      ]
-                    },
-                    {
-                      "group": "Core components",
+                      "group": "LangChain Core components",
                       "pages": [
                         "oss/javascript/langchain/agents",
                         "oss/javascript/langchain/models",
@@ -1440,6 +1392,14 @@
                         "oss/javascript/langchain/short-term-memory",
                         "oss/javascript/langchain/streaming",
                         "oss/javascript/langchain/structured-output"
+                      ]
+                    },
+                    {
+                      "group": "LangChain Middleware",
+                      "pages": [
+                        "oss/javascript/langchain/middleware/overview",
+                        "oss/javascript/langchain/middleware/built-in",
+                        "oss/javascript/langchain/middleware/custom"
                       ]
                     },
                     {
@@ -1456,15 +1416,9 @@
                         "oss/javascript/langchain/frontend/join-rejoin",
                         "oss/javascript/langchain/frontend/time-travel",
                         "oss/javascript/langchain/frontend/generative-ui",
-                        "oss/javascript/langchain/frontend/integrations"
-                      ]
-                    },
-                    {
-                      "group": "Middleware",
-                      "pages": [
-                        "oss/javascript/langchain/middleware/overview",
-                        "oss/javascript/langchain/middleware/built-in",
-                        "oss/javascript/langchain/middleware/custom"
+                        "oss/javascript/langchain/frontend/integrations",
+                        "oss/javascript/deepagents/frontend/subagent-streaming",
+                        "oss/javascript/deepagents/frontend/todo-list"
                       ]
                     },
                     {
@@ -1511,6 +1465,13 @@
                       "pages": [
                         "oss/javascript/langchain/deploy",
                         "oss/javascript/langchain/observability"
+                      ]
+                    },
+                    {
+                      "group": "Deep agents CLI",
+                      "pages": [
+                        "oss/javascript/deepagents/cli/overview",
+                        "oss/javascript/deepagents/cli/providers"
                       ]
                     }
                   ]
