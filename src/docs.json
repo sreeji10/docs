@@ -994,30 +994,9 @@
                       ]
                     },
                     {
-<<<<<<< HEAD
-                      "group": "Frontend",
-=======
-                      "group": "Deep agents Streaming",
->>>>>>> 4dc959e60 (v1)
-                      "pages": [
-                        "oss/python/deepagents/frontend/overview",
-                        "oss/python/deepagents/frontend/subagent-streaming",
-                        "oss/python/deepagents/frontend/todo-list"
-                      ]
-                    },
-                    {
                       "group": "Deep agents Protocols",
                       "pages": [
                         "oss/python/deepagents/acp"
-                      ]
-                    },
-                    {
-                      "group": "Command line interface",
-                      "pages": [
-                        "oss/python/deepagents/cli/overview",
-                        "oss/python/deepagents/cli/providers",
-                        "oss/python/deepagents/cli/configuration",
-                        "oss/python/deepagents/cli/mcp-tools"
                       ]
                     },
                     {
@@ -1053,6 +1032,8 @@
                         "oss/python/langchain/frontend/message-queues",
                         "oss/python/langchain/frontend/join-rejoin",
                         "oss/python/langchain/frontend/time-travel",
+                        "oss/python/deepagents/frontend/subagent-streaming",
+                        "oss/python/deepagents/frontend/todo-list",
                         "oss/python/langchain/frontend/generative-ui"
                       ]
                     },
@@ -1092,6 +1073,15 @@
                       "pages": [
                         "oss/python/langchain/deploy",
                         "oss/python/langchain/observability"
+                      ]
+                    },
+                    {
+                      "group": "Command line interface",
+                      "pages": [
+                        "oss/python/deepagents/cli/overview",
+                        "oss/python/deepagents/cli/providers",
+                        "oss/python/deepagents/cli/configuration",
+                        "oss/python/deepagents/cli/mcp-tools"
                       ]
                     }
                   ]
@@ -1195,12 +1185,8 @@
                         "oss/python/integrations/splitters/index",
                         "oss/python/integrations/embeddings/index",
                         "oss/python/integrations/vectorstores/index",
-<<<<<<< HEAD
-                        "oss/python/integrations/document_loaders/index"
-=======
                         "oss/python/integrations/document_loaders/index",
                         "oss/python/integrations/stores/index"
->>>>>>> 4dc959e60 (v1)
                       ]
                     }
                   ]
@@ -1356,20 +1342,21 @@
               },
               "tabs": [
                 {
-                  "tab": "Deep Agents",
+                  "tab": "Agents",
                   "pages": [
-                    "oss/javascript/deepagents/overview",
+                    "oss/javascript/langchain/overview",
                     {
                       "group": "Get started",
                       "pages": [
-                        "oss/javascript/deepagents/quickstart",
-                        "oss/javascript/deepagents/customization",
+                        "oss/javascript/langchain/quickstart",
                         "oss/javascript/deepagents/comparison",
-                        "oss/javascript/deepagents/changelog-js"
+                        "oss/javascript/langchain/philosophy",
+                        "oss/javascript/deepagents/changelog-js",
+                        "oss/javascript/langchain/changelog-js"
                       ]
                     },
                     {
-                      "group": "Core capabilities",
+                      "group": "Deep agents capabilities",
                       "pages": [
                         "oss/javascript/deepagents/models",
                         "oss/javascript/deepagents/harness",
@@ -1383,37 +1370,7 @@
                     },
                     "oss/javascript/deepagents/streaming",
                     {
-                      "group": "Frontend",
-                      "pages": [
-                        "oss/javascript/deepagents/frontend/overview",
-                        "oss/javascript/deepagents/frontend/subagent-streaming",
-                        "oss/javascript/deepagents/frontend/todo-list"
-                      ]
-                    },
-                    {
-                      "group": "Deep Agents CLI",
-                      "pages": [
-                        "oss/javascript/deepagents/cli/overview",
-                        "oss/javascript/deepagents/cli/providers"
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "tab": "LangChain",
-                  "pages": [
-                    "oss/javascript/langchain/overview",
-                    {
-                      "group": "Get started",
-                      "pages": [
-                        "oss/javascript/langchain/install",
-                        "oss/javascript/langchain/quickstart",
-                        "oss/javascript/langchain/changelog-js",
-                        "oss/javascript/langchain/philosophy"
-                      ]
-                    },
-                    {
-                      "group": "Core components",
+                      "group": "LangChain Core components",
                       "pages": [
                         "oss/javascript/langchain/agents",
                         "oss/javascript/langchain/models",
@@ -1422,6 +1379,14 @@
                         "oss/javascript/langchain/short-term-memory",
                         "oss/javascript/langchain/streaming",
                         "oss/javascript/langchain/structured-output"
+                      ]
+                    },
+                    {
+                      "group": "LangChain Middleware",
+                      "pages": [
+                        "oss/javascript/langchain/middleware/overview",
+                        "oss/javascript/langchain/middleware/built-in",
+                        "oss/javascript/langchain/middleware/custom"
                       ]
                     },
                     {
@@ -1437,15 +1402,9 @@
                         "oss/javascript/langchain/frontend/message-queues",
                         "oss/javascript/langchain/frontend/join-rejoin",
                         "oss/javascript/langchain/frontend/time-travel",
+                        "oss/javascript/deepagents/frontend/subagent-streaming",
+                        "oss/javascript/deepagents/frontend/todo-list",
                         "oss/javascript/langchain/frontend/generative-ui"
-                      ]
-                    },
-                    {
-                      "group": "Middleware",
-                      "pages": [
-                        "oss/javascript/langchain/middleware/overview",
-                        "oss/javascript/langchain/middleware/built-in",
-                        "oss/javascript/langchain/middleware/custom"
                       ]
                     },
                     {
@@ -1484,6 +1443,13 @@
                       "pages": [
                         "oss/javascript/langchain/deploy",
                         "oss/javascript/langchain/observability"
+                      ]
+                    },
+                    {
+                      "group": "Deep agents CLI",
+                      "pages": [
+                        "oss/javascript/deepagents/cli/overview",
+                        "oss/javascript/deepagents/cli/providers"
                       ]
                     }
                   ]
@@ -1892,7 +1858,6 @@
       "destination": "/oss/javascript/deepagents/cli/overview"
     },
     {
-<<<<<<< HEAD
       "source": "/oss/python/langchain/evals",
       "destination": "/oss/python/langchain/test/evals"
     },
@@ -1903,10 +1868,6 @@
     {
       "source": "/oss/python/deepagents/streaming/overview",
       "destination": "/oss/python/deepagents/streaming"
-=======
-      "source": "/oss/python/deepagents/streaming",
-      "destination": "/oss/python/deepagents/streaming/overview"
->>>>>>> 4dc959e60 (v1)
     },
     {
       "source": "/oss/javascript/deepagents/streaming/overview",
