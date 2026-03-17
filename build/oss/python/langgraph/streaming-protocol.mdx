@@ -1,0 +1,639 @@
+---
+title: Streaming protocol
+description: Wire-level reference for the LangGraph Platform SSE streaming protocol
+---
+
+LangGraph Platform streams graph execution events to clients using [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events) (SSE). This page documents the wire format, every event type, and how to build a custom stream consumer from scratch—useful if you are working outside of the official SDKs or need full control over event processing.
+
+## Transport
+
+Streaming is initiated with an HTTP `POST` request. The server responds with `Content-Type: text/event-stream` and keeps the connection open, flushing SSE frames as graph execution progresses.
+
+<Tip>
+The full REST API reference — including all request/response schemas, authentication, and endpoint options — is available in the [Agent Server API reference](/langsmith/server-api-ref). The sections below focus on the streaming wire format specifically.
+</Tip>
+
+**Endpoints**
+
+| Endpoint | When to use |
+|---|---|
+| [`POST /threads/{thread_id}/runs/stream`](/langsmith/agent-server-api/thread-runs) | Stateful run associated with a thread (checkpointing enabled) |
+| [`POST /runs/stream`](/langsmith/agent-server-api/stateless-runs) | Stateless run (no thread, no checkpointing) |
+
+**Request body** (JSON)
+
+```json
+{
+  "assistant_id": "my-agent",
+  "input": { "messages": [{ "role": "user", "content": "Hello" }] },
+  "stream_mode": ["values", "messages-tuple", "updates"],
+  "stream_subgraphs": false
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `assistant_id` | `string` | The graph or deployment to run |
+| `input` | `object \| null` | Initial state passed to the graph |
+| `command` | `object` | Resume command (alternative to `input` for interrupts) |
+| `config` | `object` | LangGraph run config (recursion limits, tags, etc.) |
+| `stream_mode` | `string \| string[]` | One or more [stream modes](#event-types) |
+| `stream_subgraphs` | `boolean` | Whether to include events from subgraphs |
+| `interrupt_before` | `string[]` | Node names to interrupt before |
+| `interrupt_after` | `string[]` | Node names to interrupt after |
+| `feedback_keys` | `string[]` | Request signed feedback URLs alongside the stream |
+
+**Response headers**
+
+| Header | Value |
+|---|---|
+| `Content-Type` | `text/event-stream` |
+| `Cache-Control` | `no-cache` |
+| `X-Run-Id` | ID of the newly created run |
+| `X-Thread-Id` | ID of the thread (stateful runs only) |
+
+## SSE wire format
+
+Each event follows the standard SSE format:
+
+```
+event: <event-type>
+data: <json-payload>
+
+```
+
+Multiple newlines separate events. When `stream_subgraphs: true`, event names are extended with a pipe-separated namespace (see [Subgraph namespacing](#subgraph-namespacing)).
+
+**Minimal example — single-agent stream**
+
+```
+event: metadata
+data: {"run_id":"1ef9b1b6-0e4a-6f3b-abcd-1234567890ab","thread_id":"thread-xyz"}
+
+event: values
+data: {"messages":[]}
+
+event: messages-tuple
+data: [{"type":"ai","id":"msg_01","content":[{"type":"text","text":"Hello"}],"tool_calls":[]},{"tags":[],"langgraph_step":1,"langgraph_node":"chatbot","langgraph_triggers":["start:chatbot"],"langgraph_checkpoint_ns":"","run_id":"1ef9b1b6-..."}]
+
+event: values
+data: {"messages":[{"type":"ai","id":"msg_01","content":"Hello","tool_calls":[]}]}
+
+event: values
+data: {"messages":[{"type":"ai","id":"msg_01","content":"Hello","tool_calls":[]}]}
+
+```
+
+## Event types
+
+Select which events you receive by specifying `stream_mode` in the request. Regardless of mode, the server also emits `metadata`, `error`, and `feedback` events automatically.
+
+### `metadata`
+
+Emitted once at the start of every stream. Contains identifiers for the run and thread.
+
+```
+event: metadata
+data: {"run_id": "1ef9b...", "thread_id": "thread-abc"}
+```
+
+**Data shape**
+
+```typescript
+{
+  run_id: string;
+  thread_id: string;
+}
+```
+
+### `values`
+
+Emitted after each graph step completes. Contains the **full state snapshot** of the graph at that point in time.
+
+```
+event: values
+data: {"messages": [...], "summary": "...", "tools_used": []}
+```
+
+**Data shape** — your graph's state type.
+
+Use `values` to track what state the graph is in after each step, and to render final outputs. Avoid using `values` to stream tokens character by character; use `messages-tuple` for that.
+
+### `updates`
+
+Emitted after each node executes. Contains only the **state keys that changed** during that node, keyed by node name.
+
+```
+event: updates
+data: {"summarize": {"summary": "The user asked about..."}}
+```
+
+**Data shape**
+
+```typescript
+{
+  [nodeName: string]: Partial<StateType>;
+}
+```
+
+### `messages-tuple`
+
+Emitted for every LLM token chunk generated inside a node. The payload is a two-element tuple: `[message_chunk, metadata]`.
+
+```
+event: messages-tuple
+data: [
+  {"type":"ai","id":"msg_01","content":[{"type":"text","text":"Hello "}],"tool_calls":[]},
+  {"tags":[],"langgraph_step":1,"langgraph_node":"chatbot","run_id":"1ef9b1b6-..."}
+]
+```
+
+**Data shape**
+
+```typescript
+[
+  message: {
+    type: "ai" | "human" | "tool" | "system";
+    id: string;
+    content: string | Array<{ type: string; text?: string; [key: string]: unknown }>;
+    tool_calls?: Array<{ id: string; name: string; args: Record<string, unknown> }>;
+    tool_call_chunks?: unknown[];
+    [key: string]: unknown;
+  },
+  metadata: {
+    tags: string[];
+    run_id: string;
+    langgraph_step: number;
+    langgraph_node: string;
+    langgraph_triggers: string[];
+    langgraph_checkpoint_ns: string;
+    [key: string]: unknown;
+  }
+]
+```
+
+The `id` field on the message chunk is stable across chunks for the same message. Accumulate chunks with the same `id` to reconstruct the full message.
+
+<Note>
+The older `messages` stream mode emits three sub-events (`messages/metadata`, `messages/partial`, `messages/complete`) and is deprecated. Use `messages-tuple` for new implementations.
+</Note>
+
+### `custom`
+
+Emitted when your graph node explicitly writes to the stream via `config.writer(data)` (JavaScript) or `get_stream_writer()(data)` (Python).
+
+```
+event: custom
+data: {"status": "Searching the web...", "progress": 0.4}
+```
+
+**Data shape** — whatever your graph emits.
+
+### `tools`
+
+Emitted during tool execution. Provides lifecycle events for every tool call.
+
+```
+event: tools
+data: {"event":"on_tool_start","toolCallId":"call_abc","name":"search_web","input":{"query":"LangGraph"}}
+
+event: tools
+data: {"event":"on_tool_event","toolCallId":"call_abc","name":"search_web","data":{"results_so_far":3}}
+
+event: tools
+data: {"event":"on_tool_end","toolCallId":"call_abc","name":"search_web","output":"...results..."}
+```
+
+**Data shapes**
+
+```typescript
+// on_tool_start
+{ event: "on_tool_start"; toolCallId?: string; name: string; input: unknown }
+
+// on_tool_event  (only for async-generator tools)
+{ event: "on_tool_event"; toolCallId?: string; name: string; data: unknown }
+
+// on_tool_end
+{ event: "on_tool_end"; toolCallId?: string; name: string; output: unknown }
+
+// on_tool_error
+{ event: "on_tool_error"; toolCallId?: string; name: string; error: unknown }
+```
+
+### `tasks`
+
+Emitted when a graph task (node invocation) starts, finishes, or errors. Requires a checkpointer.
+
+**Task created**
+
+```
+event: tasks
+data: {"id":"task-123","name":"chatbot","triggers":["start:chatbot"],"input":{...},"interrupts":[]}
+```
+
+**Task result**
+
+```
+event: tasks
+data: {"id":"task-123","name":"chatbot","result":[["messages",[...]]],"interrupts":[]}
+```
+
+**Task error**
+
+```
+event: tasks
+data: {"id":"task-123","name":"chatbot","error":"Node raised an exception: ...","interrupts":[]}
+```
+
+### `checkpoints`
+
+Emitted after each checkpoint is saved. Contains the same shape as `GET /threads/{thread_id}/state`. Requires a checkpointer.
+
+```
+event: checkpoints
+data: {
+  "values": {...},
+  "next": ["summarize"],
+  "config": {...},
+  "metadata": {...},
+  "tasks": [...]
+}
+```
+
+### `debug`
+
+A catch-all mode that combines `checkpoints` and `tasks` with additional execution metadata. Useful for development and troubleshooting.
+
+### `error`
+
+Emitted when the run fails. The stream closes after this event.
+
+```
+event: error
+data: {"error": "GraphRecursionError", "message": "Recursion limit of 25 reached."}
+```
+
+**Data shape**
+
+```typescript
+{ error: string; message: string }
+```
+
+### `feedback`
+
+Emitted once at the start of the stream when `feedback_keys` are specified in the request. Contains signed URLs you can use to submit feedback without exposing your API key to the client.
+
+```
+event: feedback
+data: {"thumbs_up": "https://api.smith.langchain.com/feedback/...?signature=..."}
+```
+
+**Data shape**
+
+```typescript
+{ [feedbackKey: string]: string }
+```
+
+## Subgraph namespacing
+
+When `stream_subgraphs: true` is set, events from subgraphs (including subagents) are prefixed with a pipe-separated namespace. The namespace encodes the call path through the graph.
+
+**Format**
+
+```
+event: <event-type>|<namespace>
+data: <json-payload>
+```
+
+**Example** — a subgraph called `project-setup` running inside a `tools` node:
+
+```
+event: messages-tuple|tools:call_abc123
+data: [{"type":"ai","id":"msg_sub_01",...}, {...,"langgraph_node":"planner"}]
+
+event: values|tools:call_abc123
+data: {"messages":[...], "plan": "..."}
+
+event: updates|tools:call_abc123
+data: {"planner": {"plan": "..."}}
+```
+
+The namespace component after the `|` is of the form `<node-name>:<task-id>`. For deeply nested subgraphs, multiple segments appear separated by additional pipes:
+
+```
+event: messages-tuple|outer_tools:call_xyz|inner_tools:call_abc
+data: [...]
+```
+
+**Parsing the namespace**
+
+```typescript
+function parseEventName(raw: string): { mode: string; namespace: string[] } {
+  const parts = raw.split("|");
+  const mode = parts[0];
+  const namespace = parts.slice(1); // e.g. ["tools:call_abc123"]
+  return { mode, namespace };
+}
+```
+
+## Resumable streams
+
+LangGraph Platform supports resuming an interrupted stream from where it left off using the standard SSE `Last-Event-ID` mechanism.
+
+Each SSE frame optionally carries an `id` field:
+
+```
+id: 42
+event: messages-tuple
+data: [...]
+
+```
+
+When a connection drops, reconnect to the same endpoint with the `Last-Event-ID` request header set to the last received event ID. The server will replay events starting from that point.
+
+```typescript
+const response = await fetch(endpoint, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Last-Event-ID": lastEventId,
+  },
+  body: JSON.stringify(payload),
+});
+```
+
+If the server redirects to a different endpoint via the `Location` response header, use that URL for the reconnection request.
+
+## Building a custom consumer
+
+The following TypeScript example shows how to consume the stream from scratch, without relying on the LangGraph SDK.
+
+### 1. Parse SSE frames
+
+The response body is a `ReadableStream<Uint8Array>`. Decode and split on double newlines to extract frames.
+
+```typescript
+async function* parseSSE(
+  stream: ReadableStream<Uint8Array>
+): AsyncGenerator<{ event: string; data: unknown; id?: string }> {
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  for await (const chunk of streamToAsyncIterator(stream)) {
+    buffer += decoder.decode(chunk, { stream: true });
+
+    // Events are separated by a blank line
+    const frames = buffer.split("\n\n");
+    buffer = frames.pop() ?? ""; // keep incomplete frame
+
+    for (const frame of frames) {
+      if (!frame.trim()) continue;
+
+      let event = "message";
+      let dataLines: string[] = [];
+      let id: string | undefined;
+
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event:")) {
+          event = line.slice("event:".length).trim();
+        } else if (line.startsWith("data:")) {
+          dataLines.push(line.slice("data:".length).trim());
+        } else if (line.startsWith("id:")) {
+          id = line.slice("id:".length).trim();
+        }
+      }
+
+      if (dataLines.length > 0) {
+        yield { event, data: JSON.parse(dataLines.join("\n")), id };
+      }
+    }
+  }
+}
+
+function streamToAsyncIterator(
+  stream: ReadableStream<Uint8Array>
+): AsyncIterable<Uint8Array> {
+  const reader = stream.getReader();
+  return {
+    [Symbol.asyncIterator]() {
+      return {
+        async next() {
+          const result = await reader.read();
+          return result;
+        },
+        async return() {
+          await reader.cancel();
+          return { done: true as const, value: undefined };
+        },
+      };
+    },
+  };
+}
+```
+
+### 2. Send a streaming request
+
+```typescript truncated
+async function startStream(options: {
+  apiUrl: string;
+  threadId: string;
+  assistantId: string;
+  input: unknown;
+  streamModes?: string[];
+}) {
+  const { apiUrl, threadId, assistantId, input, streamModes = ["values", "messages-tuple"] } = options;
+
+  const response = await fetch(
+    `${apiUrl}/threads/${threadId}/runs/stream`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "text/event-stream",
+      },
+      body: JSON.stringify({
+        assistant_id: assistantId,
+        input,
+        stream_mode: streamModes,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
+  if (!response.body) throw new Error("Response has no body");
+
+  return response.body;
+}
+```
+
+### 3. Dispatch events
+
+```typescript
+interface StreamState {
+  runId?: string;
+  values: Record<string, unknown> | null;
+  messages: Map<string, { content: string; node: string }>;
+  error?: { error: string; message: string };
+  done: boolean;
+}
+
+async function consumeStream(options: {
+  apiUrl: string;
+  threadId: string;
+  assistantId: string;
+  input: unknown;
+  onUpdate: (state: StreamState) => void;
+}) {
+  const state: StreamState = {
+    values: null,
+    messages: new Map(),
+    done: false,
+  };
+
+  const body = await startStream(options);
+
+  for await (const { event, data } of parseSSE(body)) {
+    const [mode, ...namespace] = event.split("|");
+
+    // Skip subgraph events for this basic example
+    if (namespace.length > 0) continue;
+
+    switch (mode) {
+      case "metadata": {
+        const meta = data as { run_id: string; thread_id: string };
+        state.runId = meta.run_id;
+        break;
+      }
+
+      case "values": {
+        state.values = data as Record<string, unknown>;
+        break;
+      }
+
+      case "messages-tuple": {
+        const [chunk, meta] = data as [
+          { id: string; content: unknown },
+          { langgraph_node: string }
+        ];
+
+        const existing = state.messages.get(chunk.id);
+        const text =
+          typeof chunk.content === "string"
+            ? chunk.content
+            : Array.isArray(chunk.content)
+            ? chunk.content
+                .filter((c: unknown) => (c as { type: string }).type === "text")
+                .map((c: unknown) => (c as { text: string }).text)
+                .join("")
+            : "";
+
+        state.messages.set(chunk.id, {
+          content: (existing?.content ?? "") + text,
+          node: meta.langgraph_node,
+        });
+        break;
+      }
+
+      case "error": {
+        state.error = data as { error: string; message: string };
+        state.done = true;
+        break;
+      }
+    }
+
+    options.onUpdate({ ...state });
+  }
+
+  state.done = true;
+  options.onUpdate({ ...state });
+}
+```
+
+### 4. Handle subgraph events
+
+To process events from subgraphs, pass `stream_subgraphs: true` and route by namespace:
+
+```typescript
+case "messages-tuple": {
+  const [chunk, meta] = data as [MessageChunk, MessageMeta];
+
+  if (namespace.length > 0) {
+    // Event from a subgraph — namespace[0] is e.g. "tools:call_abc123"
+    const [nodeName, taskId] = namespace[0].split(":");
+    handleSubgraphMessage(nodeName, taskId, chunk, meta);
+  } else {
+    handleMainMessage(chunk, meta);
+  }
+  break;
+}
+```
+
+### 5. Reconnect on network failure
+
+```typescript
+async function consumeStreamWithRetry(
+  options: Parameters<typeof consumeStream>[0],
+  maxRetries = 5
+) {
+  let lastEventId: string | undefined;
+  let attempt = 0;
+
+  while (attempt <= maxRetries) {
+    try {
+      const body = await startStream({
+        ...options,
+        // Pass Last-Event-ID header on reconnect
+        ...(lastEventId ? { lastEventId } : {}),
+      });
+
+      for await (const { event, data, id } of parseSSE(body)) {
+        if (id) lastEventId = id;
+
+        // ... dispatch event ...
+      }
+
+      return; // stream ended cleanly
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      attempt++;
+      // Exponential backoff: 1s, 2s, 4s, ...
+      await new Promise((r) => setTimeout(r, 1000 * 2 ** (attempt - 1)));
+    }
+  }
+}
+```
+
+## Event ordering guarantees
+
+Within a single stream, events are ordered by graph execution sequence. The server flushes events as they occur and does not buffer or reorder them.
+
+- `metadata` is always the first event.
+- `values` events reflect state snapshots at superstep boundaries.
+- `messages-tuple` events arrive mid-superstep, as tokens are generated.
+- `error` is always the last event if the run fails.
+- Subgraph events (with a namespace suffix) may interleave with parent graph events when the subgraph executes concurrently.
+
+## Content type negotiation
+
+The server only supports `text/event-stream`. Always send `Accept: text/event-stream` in your request headers. If the response `Content-Type` does not include `text/event-stream`, treat it as an error.
+
+## Request streaming vs. polling
+
+The SSE transport is a single long-lived HTTP response — not WebSockets. This means:
+
+- Only the server can push; clients cannot send messages mid-stream.
+- To interrupt a run, issue a separate `POST /threads/{thread_id}/runs/{run_id}/cancel` request.
+- To resume after a human-in-the-loop interrupt, start a new stream with a `command: { resume: <value> }` payload.
+
+---
+
+<div className="source-links">
+<Callout icon="edit">
+    [Edit this page on GitHub](https://github.com/langchain-ai/docs/edit/main/src/oss/langgraph/streaming-protocol.mdx) or [file an issue](https://github.com/langchain-ai/docs/issues/new/choose).
+</Callout>
+<Callout icon="terminal-2">
+    [Connect these docs](/use-these-docs) to Claude, VSCode, and more via MCP for real-time answers.
+</Callout>
+</div>
