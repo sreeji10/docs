@@ -23,6 +23,9 @@ uv add deepagents-acp
 ```
 </CodeGroup>
 
+
+
+
 Then expose a Deep Agent over ACP.
 
 This starts an ACP server in stdio mode (it reads requests from stdin and writes responses to stdout). In practice, you usually run this as a command launched by an ACP client (for example, your editor), which then communicates with the server over stdio.
@@ -56,9 +59,13 @@ if __name__ == "__main__":
 
 
 
+
 <Card title="Example coding agent" icon="brand-github" href="https://github.com/langchain-ai/deepagents/blob/main/libs/acp/examples/demo_agent.py">
   The `deepagents-acp` package includes an example coding agent with filesystem and shell that you can run out of the box.
 </Card>
+
+
+
 
 ## Clients
 
@@ -105,6 +112,10 @@ Then set `ANTHROPIC_API_KEY` in `.env`.
 
 4. Open Zed's Agents panel and start a DeepAgents thread.
 
+
+
+
+
 ### Toad
 
 If you want to run an ACP agent server as a local dev tool, you can use [Toad](https://github.com/batrachian/toad) to manage the process.
@@ -116,6 +127,15 @@ toad acp "python path/to/your_server.py" .
 # or
 toad acp "uv run python path/to/your_server.py" .
 ```
+
+
+
+
+
+
+
+
+
 
 <Info>
     See the upstream ACP docs for protocol details and editor support:
