@@ -367,7 +367,15 @@
                     "langsmith/export-traces",
                     "langsmith/query-threads",
                     "langsmith/langsmith-mcp-server",
-                    "langsmith/data-export"
+                    {
+                      "group": "Bulk export trace data",
+                      "pages": [
+                        "langsmith/data-export",
+                        "langsmith/data-export-destinations",
+                        "langsmith/data-export-monitor",
+                        "langsmith/data-export-downstream"
+                      ]
+                    }
                   ]
                 },
                 {
