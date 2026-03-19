@@ -162,13 +162,20 @@ OTel APM tracing was added in Agent Server version `0.5.32` and is currently in 
 
 ## `LS_MONGODB_URI`
 
-MongoDB connection URI for the MongoDB checkpointer backend.
+MongoDB connection URI for the MongoDB checkpointer backend. To use, you must set
+```json
+{
+    "checkpointer": {
+        "backend": "mongo",
+    }
+}
+```
+in your config file OR have `LS_DEFAULT_CHECKPOINTER_BACKEND=mongo` set in your environment.
 
 The URI must point to a replica set member or `mongos` router and must include the database name in the path.
 
 See [Configure checkpointer backend](/langsmith/configure-checkpointer) for details.
 
-See [Configure checkpointer backend](/langsmith/configure-checkpointer) for details.
 
 ## `POSTGRES_URI_CUSTOM`
 
