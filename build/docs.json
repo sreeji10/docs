@@ -1076,7 +1076,15 @@
                             "oss/python/langchain/frontend/generative-ui"
                           ]
                         },
-                        "oss/python/langchain/frontend/integrations"
+                        {
+                          "group": "Integrations",
+                          "pages": [
+                            "oss/javascript/langchain/frontend/integrations/overview",
+                            "oss/javascript/langchain/frontend/integrations/ai-elements",
+                            "oss/javascript/langchain/frontend/integrations/assistant-ui",
+                            "oss/javascript/langchain/frontend/integrations/openui"
+                          ]
+                        }
                       ]
                     },
                     {
@@ -1477,7 +1485,15 @@
                             "oss/javascript/langchain/frontend/generative-ui"
                           ]
                         },
-                        "oss/javascript/langchain/frontend/integrations"
+                        {
+                          "group": "Integrations",
+                          "pages": [
+                            "oss/javascript/langchain/frontend/integrations/overview",
+                            "oss/javascript/langchain/frontend/integrations/ai-elements",
+                            "oss/javascript/langchain/frontend/integrations/assistant-ui",
+                            "oss/javascript/langchain/frontend/integrations/openui"
+                          ]
+                        }
                       ]
                     },
                     {
@@ -2546,6 +2562,14 @@
     {
       "source": "/langsmith/agent-server-api/crons-plus-tier/delete-cron",
       "destination": "/langsmith/agent-server-api/crons/delete-cron"
+    },
+    {
+      "source": "/oss/javascript/langchain/frontend/integrations",
+      "destination": "/oss/javascript/langchain/frontend/integrations/overview"
+    },
+    {
+      "source": "/oss/python/langchain/frontend/integrations",
+      "destination": "/oss/python/langchain/frontend/integrations/overview"
     }
   ]
 }
