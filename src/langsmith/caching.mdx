@@ -4,7 +4,7 @@ sidebarTitle: Caching
 description: Cache values server-side in your agent deployment using stale-while-revalidate and key-value cache APIs.
 ---
 
-The agent server includes a built-in cache you can use inside your deployed graphs. Call `swr` with a key and a loader function, and the server caches the result, revalidates stale entries in the background, and returns fresh data on every read.
+[Agent Server](/langsmith/agent-server) includes a built-in cache you can use inside your deployed graphs. Call `swr` with a key and a loader function, and the server caches the result, revalidates stale entries in the background, and returns fresh data on every read.
 
 All cache APIs are **server-side only** and require the LangGraph Agent Server runtime. Values must be JSON-serializable.
 
