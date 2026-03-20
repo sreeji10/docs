@@ -243,15 +243,17 @@ Build a custom backend to project a remote or database filesystem (e.g., S3 or P
 Design guidelines:
 
 - Paths are absolute (`/x/y.txt`). Decide how to map them to your storage keys/rows.
-- Implement `ls_info` and `glob_info` efficiently (server-side listing where available, otherwise local filter).
-- Return user-readable error strings for missing files or invalid regex patterns.
+- Implement `ls` and `glob` efficiently (server-side listing where available, otherwise local filter).
+- Return structured result types with `error` field for missing files or invalid patterns (do not raise).
 - For external persistence, set `files_update=None` in results; only in-state backends should return a `files_update` dict.
 
 S3-style outline:
 
 :::python
 ```python
-from deepagents.backends.protocol import BackendProtocol, WriteResult, EditResult
+from deepagents.backends.protocol import (
+    BackendProtocol, WriteResult, EditResult, LsResult, ReadResult, GrepResult, GlobResult,
+)
 from deepagents.backends.utils import FileInfo, GrepMatch
 
 class S3Backend(BackendProtocol):
@@ -262,19 +264,19 @@ class S3Backend(BackendProtocol):
     def _key(self, path: str) -> str:
         return f"{self.prefix}{path}"
 
-    def ls_info(self, path: str) -> list[FileInfo]:
+    def ls(self, path: str) -> LsResult:
         # List objects under _key(path); build FileInfo entries (path, size, modified_at)
         ...
 
-    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> str:
-        # Fetch object; return numbered content or an error string
+    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> ReadResult:
+        # Fetch object; return ReadResult(file_data=...) or ReadResult(error=...)
         ...
 
-    def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None) -> list[GrepMatch] | str:
+    def grep(self, pattern: str, path: str | None = None, glob: str | None = None) -> GrepResult:
         # Optionally filter server‑side; else list and scan content
         ...
 
-    def glob_info(self, pattern: str, path: str = "/") -> list[FileInfo]:
+    def glob(self, pattern: str, path: str = "/") -> GlobResult:
         # Apply glob relative to path across keys
         ...
 
@@ -292,9 +294,9 @@ Postgres-style outline:
 
 - Table `files(path text primary key, content text, created_at timestamptz, modified_at timestamptz)`
 - Map tool operations onto SQL:
-  - `ls_info` uses `WHERE path LIKE $1 || '%'`
-  - `glob_info` filter in SQL or fetch then apply glob in Python
-  - `grep_raw` can fetch candidate rows by extension or last modified time, then scan lines
+  - `ls` uses `WHERE path LIKE $1 || '%'`
+  - `glob` filter in SQL or fetch then apply glob in Python
+  - `grep` can fetch candidate rows by extension or last modified time, then scan lines
 
 ## Add policy hooks
 
@@ -328,8 +330,9 @@ Generic wrapper (works with any backend):
 
 :::python
 ```python
-from deepagents.backends.protocol import BackendProtocol, WriteResult, EditResult
-from deepagents.backends.utils import FileInfo, GrepMatch
+from deepagents.backends.protocol import (
+    BackendProtocol, WriteResult, EditResult, LsResult, ReadResult, GrepResult, GlobResult,
+)
 
 class PolicyWrapper(BackendProtocol):
     def __init__(self, inner: BackendProtocol, deny_prefixes: list[str] | None = None):
@@ -339,18 +342,23 @@ class PolicyWrapper(BackendProtocol):
     def _deny(self, path: str) -> bool:
         return any(path.startswith(p) for p in self.deny_prefixes)
 
-    def ls_info(self, path: str) -> list[FileInfo]:
-        return self.inner.ls_info(path)
-    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> str:
+    def ls(self, path: str) -> LsResult:
+        return self.inner.ls(path)
+
+    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> ReadResult:
         return self.inner.read(file_path, offset=offset, limit=limit)
-    def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None) -> list[GrepMatch] | str:
-        return self.inner.grep_raw(pattern, path, glob)
-    def glob_info(self, pattern: str, path: str = "/") -> list[FileInfo]:
-        return self.inner.glob_info(pattern, path)
+
+    def grep(self, pattern: str, path: str | None = None, glob: str | None = None) -> GrepResult:
+        return self.inner.grep(pattern, path, glob)
+
+    def glob(self, pattern: str, path: str = "/") -> GlobResult:
+        return self.inner.glob(pattern, path)
+
     def write(self, file_path: str, content: str) -> WriteResult:
         if self._deny(file_path):
             return WriteResult(error=f"Writes are not allowed under {file_path}")
         return self.inner.write(file_path, content)
+
     def edit(self, file_path: str, old_string: str, new_string: str, replace_all: bool = False) -> EditResult:
         if self._deny(file_path):
             return EditResult(error=f"Edits are not allowed under {file_path}")
@@ -362,14 +370,14 @@ class PolicyWrapper(BackendProtocol):
 
 Backends must implement the `BackendProtocol`.
 
-Required endpoints:
-- `ls_info(path: str) -> list[FileInfo]`
+Required methods:
+- `ls(path: str) -> LsResult`
   - Return entries with at least `path`. Include `is_dir`, `size`, `modified_at` when available. Sort by `path` for deterministic output.
-- `read(file_path: str, offset: int = 0, limit: int = 2000) -> str`
-  - Return numbered content. On missing file, return `"Error: File '/x' not found"`.
-- `grep_raw(pattern: str, path: Optional[str] = None, glob: Optional[str] = None) -> list[GrepMatch] | str`
-  - Return structured matches. For an invalid regex, return a string like `"Invalid regex pattern: ..."` (do not raise).
-- `glob_info(pattern: str, path: str = "/") -> list[FileInfo]`
+- `read(file_path: str, offset: int = 0, limit: int = 2000) -> ReadResult`
+  - Return file data on success. On missing file, return `ReadResult(error="Error: File '/x' not found")`.
+- `grep(pattern: str, path: Optional[str] = None, glob: Optional[str] = None) -> GrepResult`
+  - Return structured matches. On error, return `GrepResult(error="...")` (do not raise).
+- `glob(pattern: str, path: str = "/") -> GlobResult`
   - Return matched files as `FileInfo` entries (empty list if none).
 - `write(file_path: str, content: str) -> WriteResult`
   - Create-only. On conflict, return `WriteResult(error=...)`. On success, set `path` and for state backends set `files_update={...}`; external backends should use `files_update=None`.
@@ -377,7 +385,12 @@ Required endpoints:
   - Enforce uniqueness of `old_string` unless `replace_all=True`. If not found, return error. Include `occurrences` on success.
 
 Supporting types:
+- `LsResult(error, entries)` — `entries` is a `list[FileInfo]` on success, `None` on failure.
+- `ReadResult(error, file_data)` — `file_data` is a `FileData` dict on success, `None` on failure.
+- `GrepResult(error, matches)` — `matches` is a `list[GrepMatch]` on success, `None` on failure.
+- `GlobResult(error, matches)` — `matches` is a `list[FileInfo]` on success, `None` on failure.
 - `WriteResult(error, path, files_update)`
 - `EditResult(error, path, files_update, occurrences)`
+- `FileData` with fields: `content` (str), `encoding` (`"utf-8"` or `"base64"`), `created_at`, `modified_at`.
 - `FileInfo` with fields: `path` (required), optionally `is_dir`, `size`, `modified_at`.
 - `GrepMatch` with fields: `path`, `line`, `text`.
