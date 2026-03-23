@@ -289,6 +289,35 @@ Your provider package may optionally provide model profiles at a `_PROFILES` dic
 
 ---
 
+## Skills configuration
+
+### Extra allowed directories
+
+By default, `load_skill_content` validates that a resolved skill file path stays inside one of the standard [skill directories](/oss/deepagents/skills#skill-locations). This prevents symlinks inside skill directories from reading arbitrary files outside those roots.
+
+If you store shared skill assets in a non-standard location and use symlinks from a standard skill directory to reference them, you can add that location to the containment allowlist. This does **not** add a new skill discovery location — skills are still only discovered from the standard directories.
+
+<AccordionGroup>
+    <Accordion title="Config file">
+    ```toml
+    [skills]
+    extra_allowed_dirs = [
+        "~/shared-skills",
+        "/opt/team-skills",
+    ]
+    ```
+    </Accordion>
+    <Accordion title="Environment variable">
+    ```bash
+    export DEEPAGENTS_EXTRA_SKILLS_DIRS="~/shared-skills:/opt/team-skills"
+    ```
+    </Accordion>
+</AccordionGroup>
+
+When the environment variable is set, it takes precedence over the config file value. Paths support `~` expansion. Changes take effect on `/reload`.
+
+---
+
 ## External editor
 
 Press `Ctrl+X` or type `/editor` to compose prompts in an external editor. The CLI checks `$VISUAL`, then `$EDITOR`, then falls back to `vi` (macOS/Linux) or `notepad` (Windows). GUI editors (VS Code, Cursor, Zed, Sublime Text, Windsurf) automatically receive a `--wait` flag so the CLI blocks until you close the file.

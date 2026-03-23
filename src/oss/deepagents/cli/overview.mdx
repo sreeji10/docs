@@ -147,7 +147,8 @@ The agent will use its built-in tools, skills, and memory to help you with tasks
         - `/tokens` - Display current context window token usage breakdown
         - `/clear` - Clear conversation history and start a new thread
         - `/threads` - Browse and resume previous conversation threads
-        - `/reload` - Refresh runtime configuration (API keys, `.env` changes, shell allow-list) without restarting. Conversation state is preserved
+        - `/reload` - Refresh runtime configuration (API keys, `.env` changes, shell allow-list) and re-discover skills without restarting. Conversation state is preserved
+        - `/skill:<name> [args]` - Directly invoke a skill by name. The skill's `SKILL.md` instructions are injected into the prompt along with any arguments you provide
         - `/trace` - Open the current thread in LangSmith (requires `LANGSMITH_API_KEY`)
         - `/editor` - Open the current prompt in your external editor (`$VISUAL` / `$EDITOR`). See [External editor](/oss/deepagents/cli/configuration#external-editor)
         - `/changelog` - Open the CLI changelog in your browser
@@ -178,9 +179,9 @@ The agent will use its built-in tools, skills, and memory to help you with tasks
         | `Ctrl+A` | Select all text in input |
         | `@filename` | Auto-complete files and inject content |
         | `Shift+Tab` or `Ctrl+T` | Toggle auto-approve |
-        | `Ctrl+U` | Delete the current line |
+        | `Ctrl+U` | Delete to start of line |
         | `Ctrl+X` | Open prompt in external editor |
-        | `Ctrl+E` | Expand/collapse the most recent tool output |
+        | `Ctrl+O` | Expand/collapse the most recent tool output |
         | `Escape` | Interrupt current operation |
         | `Ctrl+C` | Interrupt or quit |
         | `Ctrl+D` | Exit |
@@ -437,10 +438,12 @@ Use `/remember` to explicitly prompt the agent to update skills and memory from 
         At startup, the CLI discovers skills from both Deep Agents and shared alias directories:
 
         ```text
-        `~/.deepagents/<agent_name>/skills/`
-        `~/.agents/skills/`
-        `.deepagents/skills/`
-        `.agents/skills/`.
+        ~/.deepagents/<agent_name>/skills/
+        ~/.agents/skills/
+        .deepagents/skills/
+        .agents/skills/
+        ~/.claude/skills/          (experimental)
+        .claude/skills/            (experimental)
         ```
 
         When duplicate skill names exist, later-precedence directories override earlier ones (see [App data](/oss/deepagents/data-locations#skills)).
@@ -450,6 +453,9 @@ Use `/remember` to explicitly prompt the agent to update skills and memory from 
 
         For each skill, the CLI reads the name and the description from the `SKILL.md` file's frontmatter.
         As you use the CLI, if a task matches the skill's description, the agent will read the skill file and follow its instructions.
+        You can also invoke a skill directly with `/skill:<name> [args]`.
+
+        Skill discovery runs at startup and again on `/reload`.
     </Accordion>
 
     <Accordion title="List skills" icon="list">
