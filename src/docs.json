@@ -1284,7 +1284,8 @@
                           "expanded": true,
                           "pages": [
                             "oss/python/deepagents/data-analysis",
-                            "oss/python/deepagents/deep-research"
+                            "oss/python/deepagents/deep-research",
+                            "oss/python/deepagents/content-builder"
                           ]
                         },
                         {
@@ -1742,6 +1743,13 @@
                       "group": "Tutorials",
                       "icon": "code",
                       "pages": [
+                        {
+                          "group": "Deep Agents",
+                          "expanded": true,
+                          "pages": [
+                            "oss/javascript/deepagents/content-builder"
+                          ]
+                        },
                         {
                           "group": "LangChain",
                           "expanded": true,
