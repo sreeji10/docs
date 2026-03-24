@@ -8,6 +8,10 @@ import DeepResearchToolsPy from '/snippets/code-samples/deep-research-tools-py.m
 import DeepResearchAgentClaudePy from '/snippets/code-samples/deep-research-agent-claude-py.mdx';
 import DeepResearchRunSyncPy from '/snippets/code-samples/deep-research-run-sync-py.mdx';
 import DeepResearchRunStreamPy from '/snippets/code-samples/deep-research-run-stream-py.mdx';
+import DeepResearchToolsJs from '/snippets/code-samples/deep-research-tools-js.mdx';
+import DeepResearchAgentClaudeJs from '/snippets/code-samples/deep-research-agent-claude-js.mdx';
+import DeepResearchRunSyncJs from '/snippets/code-samples/deep-research-run-sync-js.mdx';
+import DeepResearchRunStreamJs from '/snippets/code-samples/deep-research-run-stream-js.mdx';
 
 ## Overview
 
@@ -104,21 +108,32 @@ export LANGSMITH_API_KEY="your_langsmith_api_key"   # Optional
 </Steps>
 
 
+
+
 ## Build the agent
 
 Create `agent.py` in your project directory:
 
+
+
+
 <Steps>
 <Step title="Add tools">
 
-Add the custom search tool. The `tavily_search` tool uses Tavily for URL discovery, then fetches full webpage content (converted to markdown) so the agent can analyze complete sources instead of summaries.
+Add the custom search tool. The `tavily_search` tool uses Tavily for URL discovery, then fetches full webpage content so the agent can analyze complete sources instead of summaries.
 
 <DeepResearchToolsPy />
+
+
+
 
 </Step>
 <Step title="Add prompts">
 
 Add the orchestrator workflow and sub-agent prompt templates to `agent.py`:
+
+
+
 
 ```python expandable wrap
 RESEARCH_WORKFLOW_INSTRUCTIONS = """# Research Workflow
@@ -273,6 +288,9 @@ Your role is to coordinate research by delegating tasks from your TODO list to s
 - Bias towards focused research over exhaustive exploration"""
 ```
 
+
+
+
 </Step>
 <Step title="Create the agent">
 
@@ -324,23 +342,36 @@ agent = create_deep_agent(
 </Tab>
 </Tabs>
 
+
+
+
 </Step>
 </Steps>
 
 ## Run the agent
 
 You can run the agent synchronously, meaning it will wait for the full result and then print it, or you can stream updates as they come in.
+
 Add the code from the respective tab at the bottom of `agent.py`:
+
+
+
 
 <Tabs>
 <Tab title="Run synchronously" value="sync">
 
 <DeepResearchRunSyncPy />
 
+
+
+
 </Tab>
 <Tab title="Stream updates" value="stream">
 
 <DeepResearchRunStreamPy />
+
+
+
 
 </Tab>
 </Tabs>
@@ -351,6 +382,9 @@ Run the agent from the project root:
 python agent.py
 ```
 
+
+
+
 If you set the `LANGSMITH_API_KEY` environment variable before running, you can view the agent's traces in [LangSmith](/langsmith/home) to debug and monitor multi-step behavior.
 
 ## Full code
@@ -359,7 +393,7 @@ View the complete [Deep Research example](https://github.com/langchain-ai/deepag
 
 ## Next steps
 
-Now that you've built the agent, customize it by changing the prompt constants in `agent.py` to adjust the workflow, delegation strategy, or researcher behavior.
+Now that you've built the agent, customize it by changing the prompt constants in your agent file to adjust the workflow, delegation strategy, or researcher behavior.
 You can also tune the delegation limits to allow for more parallel sub-agents or delegation rounds.
 
 For more information on the concepts in this tutorial, check out the following resources:
