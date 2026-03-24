@@ -10,6 +10,35 @@ rss: true
 
 [Self-hosted LangSmith](/langsmith/self-hosted) is an add-on to the Enterprise plan designed for our largest, most security-conscious customers. For more details, refer to [Pricing](https://www.langchain.com/pricing). [Contact our sales team](https://www.langchain.com/contact-sales) if you want to get a license key to trial LangSmith in your environment.
 
+<Update label="2026-03-24" tags={["self-hosted"]}>
+## langsmith-auth-proxy-0.0.9
+
+- Fixed path prefix for ABAC permission checks in self-hosted instances.
+- Resolved DotDict handling in decrypt_passthrough_headers for Agent Builder.
+- Added network allow denylist for improved security.
+- Introduced access control UI for sandbox proxy.
+- Supported Google IAP session refresh in self-hosted environments.
+- Added JWT generation for auth-proxy in playground service.
+- Enhanced frontend loading by reducing the number of preload chunks.
+- Added localStorage caching for /info and /auth/v1/user responses to improve performance.
+- Enabled OpenAI chat completion support.
+- Added static TTL expiry fields to sandbox UI for better session management.
+- Improved Playgound by making the apply button consistent in size.
+- Added new access control features, including service key authentication for specific endpoints.
+- Implemented Slack channel enablement for personal agents in the Agent Builder.
+- Enhanced experimental evaluator functionality by raising SAQ timeouts.
+- Improved design of the run detail dropdown.
+- Resolved blank trace count dashboard when grouped by metadata key.
+- Reordered inbox tabs to better prioritize attention-needed items.
+- Added support for specifying environment variables from secret references in the host-backend.
+- Fixed multiple user interface elements including checkbox replacements in various components.
+- Updated tracing project column selector for better user experience.
+- Added LangChain vendor extractor to messages feature.
+- Fixed langgraph-api bump to address self-hosted 403 error.
+
+**Download the Helm chart:** [`langsmith-auth-proxy-0.0.9.tgz`](https://github.com/langchain-ai/helm/releases/download/langsmith-auth-proxy-0.0.9/langsmith-auth-proxy-0.0.9.tgz)
+</Update>
+
 <Update label="2026-03-23" tags={["self-hosted"]}>
 ## langsmith-0.13.31
 
