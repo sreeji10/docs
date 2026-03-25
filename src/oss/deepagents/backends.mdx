@@ -193,7 +193,7 @@ from deepagents.backends import StoreBackend
 # Per-user: each user gets their own isolated storage
 backend = lambda rt: StoreBackend(
     rt,
-    namespace=lambda ctx: (ctx.runtime.context.user_id, "filesystem"),
+    namespace=lambda ctx: (ctx.runtime.context.user_id,),
 )
 
 # Per-assistant: all users of the same assistant share storage
@@ -201,7 +201,6 @@ backend = lambda rt: StoreBackend(
     rt,
     namespace=lambda ctx: (
         get_config()["metadata"]["assistant_id"],
-        "filesystem",
     ),
 )
 
@@ -210,7 +209,6 @@ backend = lambda rt: StoreBackend(
     rt,
     namespace=lambda ctx: (
         get_config()["configurable"]["thread_id"],
-        "filesystem",
     ),
 )
 ```
@@ -223,14 +221,14 @@ import { StoreBackend } from "deepagents";
 
 // Per-user: each user gets their own isolated storage
 const backend = (rt) => new StoreBackend(rt, {
-  namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+  namespace: (ctx) => [ctx.runtime.context.userId],
 });
 
 // Per-assistant: all users of the same assistant share storage
 const backend = (rt) => new StoreBackend(rt, {
   namespace: (ctx) => {
     const config = getConfig();
-    return [config.metadata.assistantId, "filesystem"];
+    return [config.metadata.assistantId];
   },
 });
 
@@ -238,11 +236,13 @@ const backend = (rt) => new StoreBackend(rt, {
 const backend = (rt) => new StoreBackend(rt, {
   namespace: (ctx) => {
     const config = getConfig();
-    return [config.configurable.threadId, "filesystem"];
+    return [config.configurable.threadId];
   },
 });
 ```
 :::
+
+You can combine multiple components to create more specific scopes — for example, `(user_id, thread_id)` for per-user per-conversation isolation, or append a suffix like `"filesystem"` to disambiguate when the same scope uses multiple store namespaces.
 
 Namespace components must contain only alphanumeric characters, hyphens, underscores, dots, `@`, `+`, colons, and tildes. Wildcards (`*`, `?`) are rejected to prevent glob injection.
 
