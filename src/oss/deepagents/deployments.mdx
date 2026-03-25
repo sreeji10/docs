@@ -3,58 +3,29 @@ title: Deployments
 description: Deploy Deep Agents to production with LangSmith Deployment, configure persistent memory, sandboxes, and production middleware
 ---
 
-This page covers how to take your local Deep Agent to production. The main decisions are how to scope [memory](#memory), [files and skills](#files), and [sandboxes](#sandboxes) for your deployed agent, and what [resilience middleware](#production-middleware) to add.
+This page covers how to take your local Deep Agent to production. The main decisions are how to scope [memory and skills](#memory) that persist across conversations, how to handle [your agent's filesystem](#files), how to manage [sandbox](#sandboxes) lifecycle for code execution, and what [resilience middleware](#production-middleware) to add.
 
 Deep Agents deploy on [LangSmith Deployment](/langsmith/deployment) (LSD), which handles infrastructure for you — [assistants](/langsmith/assistants), [threads](/langsmith/use-threads), [runs](/langsmith/runs), a provisioned store and checkpointer — and can expose your agent via [MCP](/langsmith/server-mcp), [A2A](/langsmith/server-a2a), [webhooks](/langsmith/use-webhooks), or [cron](/langsmith/cron-jobs). For general deployment setup, see the [LangSmith Deployment quickstart](/langsmith/deployment-quickstart).
-
-## Deployment configuration
-
-Define your agent in `langgraph.json`. For full configuration options, see [application structure](/langsmith/application-structure).
-
-```json
-{
-  "graphs": {
-    "agent": "./agent/server.py:agent"
-  }
-}
-```
-
-If your agent uses a webhook server (for [external triggers](/langsmith/use-webhooks)), co-deploy it as an HTTP app:
-
-```json
-{
-  "graphs": {
-    "agent": "./agent/server.py:agent"
-  },
-  "http": {
-    "app": "./server/webapp.py:app"
-  }
-}
-```
-
-<Note>
-    LSD automatically provisions a **store** and **checkpointer** for your agent. Omit both from `create_deep_agent()`. See [custom store](/langsmith/custom-store) and [configure checkpointer](/langsmith/configure-checkpointer) if you need to customize them.
-</Note>
 
 ## Memory
 
 In local development, memory is often stored on disk or in an `InMemoryStore`. In production, you need persistent storage that isolates data between users.
 
-Use `StoreBackend` with a [namespace factory](/oss/deepagents/backends#namespace-factories) to persist memory in the LangGraph [Store](/langsmith/custom-store) that LSD provisions automatically. The namespace factory controls who can see what data.
+Use @[`StoreBackend`] with a [namespace factory](/oss/deepagents/backends#namespace-factories) to persist memory in the LangGraph [Store](/langsmith/custom-store) that LSD provisions automatically. The namespace factory controls who can see what data.
 
 ### Choose a scope
 
-| Scope | Who shares data | Use case |
-|---|---|---|
-| **Per-user** (most common) | Only that user, across all conversations | Personal preferences, instructions, learned context |
-| **Per-assistant** | All users of the same [assistant](/langsmith/assistants) | Shared team knowledge, project documentation |
+The [namespace factory](/oss/deepagents/backends#namespace-factories) on `StoreBackend` controls who sees what data:
+
+<Tabs>
+  <Tab title="Per-user (most common)">
+    Each user gets private persistent memory across all their conversations. Use this for personal preferences, instructions, and learned context.
 
 :::python
 ```python
 from deepagents import create_deep_agent
 from deepagents.backends import StoreBackend
 
-# Per-user: each user gets private persistent memory
 agent = create_deep_agent(
     backend=lambda rt: StoreBackend(
         rt,
@@ -68,7 +39,6 @@ agent = create_deep_agent(
 ```typescript
 import { createDeepAgent, StoreBackend } from "deepagents";
 
-// Per-user: each user gets private persistent memory
 const agent = createDeepAgent({
   backend: (rt) => new StoreBackend(rt, {
     namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
@@ -77,19 +47,89 @@ const agent = createDeepAgent({
 ```
 :::
 
-With this setup, everything the agent writes persists across conversations for that user — AGENTS.md files, notes, learned preferences.
+  </Tab>
+  <Tab title="Per-assistant">
+    All users of the same [assistant](/langsmith/assistants) share memory. Use this for shared team knowledge or project documentation.
+
+:::python
+```python
+from langgraph.config import get_config
+from deepagents import create_deep_agent
+from deepagents.backends import StoreBackend
+
+agent = create_deep_agent(
+    backend=lambda rt: StoreBackend(
+        rt,
+        namespace=lambda ctx: (
+            get_config()["metadata"]["assistant_id"],
+            "filesystem",
+        ),
+    ),
+)
+```
+:::
+
+:::js
+```typescript
+import { getConfig } from "@langchain/langgraph";
+import { createDeepAgent, StoreBackend } from "deepagents";
+
+const agent = createDeepAgent({
+  backend: (rt) => new StoreBackend(rt, {
+    namespace: (ctx) => {
+      const config = getConfig();
+      return [config.metadata.assistantId, "filesystem"];
+    },
+  }),
+});
+```
+:::
+
+  </Tab>
+</Tabs>
 
 You can also read and write to the store from your application code using the [Store API](/langsmith/custom-store). See [accessing memories from external code](/oss/deepagents/long-term-memory#accessing-memories-from-external-code-langsmith) for examples.
 
 For the full namespace factory API, see [namespace factories](/oss/deepagents/backends#namespace-factories). For memory patterns like self-improving instructions and knowledge bases, see [long-term memory](/oss/deepagents/long-term-memory).
 
+### Skills
+
+[Skills](/oss/deepagents/skills) are reusable agent capabilities defined as SKILL.md files. Like memory, skills are persistent content loaded from the backend — and they're scoped the same way. Skills stored in a `StoreBackend` share whatever namespace you've configured, so per-user skills stay private and per-assistant skills are shared across users.
+
+Pass skill source paths when creating your agent:
+
+:::python
+```python
+agent = create_deep_agent(
+    backend=lambda rt: StoreBackend(
+        rt,
+        namespace=lambda ctx: (ctx.runtime.context.user_id, "filesystem"),
+    ),
+    skills=["/skills/"],  # Loaded from the same StoreBackend
+)
+```
+:::
+
+:::js
+```typescript
+const agent = createDeepAgent({
+  backend: (rt) => new StoreBackend(rt, {
+    namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+  }),
+  skills: ["/skills/"],  // Loaded from the same StoreBackend
+});
+```
+:::
+
+Skills support layering — later sources override earlier ones for skills with the same name. See [skills](/oss/deepagents/skills) for the full specification, source precedence, and subagent skills.
+
 ## Files
 
-Files are the agent's working scratch space — drafts, intermediate results, generated code. By default, these are ephemeral: they live in thread state (`StateBackend`) and are gone when the conversation ends.
+Working files — drafts, intermediate results, generated code — are typically scoped per-thread. They live in @[`StateBackend`] (the default) and are gone when the conversation ends. Each [thread](/langsmith/use-threads) gets a clean workspace.
 
 If your agent needs to run code, use a [sandbox backend](/oss/deepagents/sandboxes) instead. The agent gets the same filesystem tools plus an `execute` tool for shell commands, all isolated from your host. See [sandboxes](#sandboxes) below.
 
-To combine ephemeral files with persistent memory, use a `CompositeBackend`:
+Most deployed agents combine per-thread working files with cross-thread persistent storage (for [memory](#memory) and [skills](#skills)). Use a @[`CompositeBackend`] to route different paths to different backends — ephemeral files go to `StateBackend` or a sandbox, while `/memories/` routes to `StoreBackend` and persists across threads:
 
 :::python
 ```python
@@ -131,46 +171,30 @@ const agent = createDeepAgent({
     Do not use `FilesystemBackend` in deployed agents. It accesses the host filesystem directly and is not isolated between users or threads. Use `StoreBackend` for persistent storage and `StateBackend` or a sandbox for ephemeral files.
 </Warning>
 
-### Skills
-
-[Skills](/oss/deepagents/skills) are read-only capabilities (SKILL.md files) loaded from the backend at startup. Pass skill source paths when creating your agent — the skills middleware loads them from whatever backend you've configured:
-
-:::python
-```python
-agent = create_deep_agent(
-    backend=...,
-    skills=["/skills/"],  # Loaded from the default backend
-)
-```
-:::
-
-:::js
-```typescript
-const agent = createDeepAgent({
-  backend: ...,
-  skills: ["/skills/"],  // Loaded from the default backend
-});
-```
-:::
-
-In production, skills are typically stored in the `StoreBackend` alongside memory, or loaded via a `CompositeBackend` route. See [skills](/oss/deepagents/skills) for the full specification and source precedence rules.
-
 For full backend documentation, see [backends](/oss/deepagents/backends).
 
 ## Sandboxes
 
-[Sandboxes](/oss/deepagents/sandboxes) give the agent an isolated environment to write and run code, install packages, clone repos, and produce artifacts — without affecting your infrastructure.
+[Sandboxes](/oss/deepagents/sandboxes) give the agent an isolated environment to write and run code, install packages, clone repos, and produce artifacts — without affecting your infrastructure. In production, use a sandbox instead of `LocalShellBackend`, which has no isolation.
 
-The key production decision is **scope**: does each conversation get a fresh sandbox, or do conversations share one?
+The key production decision is **scope**: does each conversation get a fresh sandbox, or do conversations share one? See [lifecycle and scoping](/oss/deepagents/sandboxes#lifecycle-and-scoping) for full details.
 
-| Scope | Sandbox ID stored on | What happens | Use case |
-|---|---|---|---|
-| **Thread-scoped** (most common) | [Thread](/langsmith/use-threads) metadata | Fresh sandbox per conversation. Cleaned up on TTL. | Data analysis, one-off coding, code review |
-| **Assistant-scoped** | [Assistant](/langsmith/assistants) config | All conversations share one sandbox. Files and packages persist. | Persistent dev environments, long-running projects |
+<Tabs>
+  <Tab title="Thread-scoped (most common)">
+    Each conversation gets its own sandbox. The sandbox is created when the first [run](/langsmith/runs) starts and reused for follow-up messages on the same [thread](/langsmith/use-threads). Cleaned up when the thread ends or the sandbox [TTL](/langsmith/configure-ttl) expires. Store the sandbox ID in thread metadata so follow-up runs reconnect.
 
-**Thread-scoped** is the right default for most agents. The user starts a conversation, the agent gets a clean sandbox, does its work, and the sandbox is cleaned up when the conversation ends or its TTL expires. Store the sandbox ID in [thread](/langsmith/use-threads) metadata so follow-up runs reconnect to the same sandbox.
+    Best for: data analysis, one-off coding tasks, code review.
+  </Tab>
+  <Tab title="Assistant-scoped">
+    All conversations share one sandbox. The sandbox ID is stored on the [assistant](/langsmith/assistants) config, so every conversation returns to the same environment. Files, installed packages, and cloned repositories persist across conversations.
 
-**Assistant-scoped** is for agents that maintain a long-running workspace — for example, a coding agent that iterates on a codebase over multiple sessions and needs to keep its git state, installed dependencies, and work-in-progress files.
+    Best for: persistent dev environments, long-running projects where the agent iterates on a codebase over multiple sessions.
+
+    <Warning>
+        Assistant-scoped sandboxes accumulate state over time. Implement periodic cleanup, use snapshots to reset, or configure a TTL to prevent unbounded resource usage.
+    </Warning>
+  </Tab>
+</Tabs>
 
 To combine a sandbox with persistent memory, use a `CompositeBackend` with the sandbox as the default and a `StoreBackend` route for `/memories/`:
 
@@ -210,15 +234,11 @@ const agent = createDeepAgent({
 ```
 :::
 
-<Warning>
-    Assistant-scoped sandboxes accumulate state over time. Implement periodic cleanup, use snapshots to reset, or configure a TTL to prevent unbounded resource usage.
-</Warning>
-
 For provider setup, security, and lifecycle patterns, see the full [sandboxes guide](/oss/deepagents/sandboxes).
 
 ## Production middleware
 
-Add [middleware](/oss/langchain/middleware/built-in) to make your agent resilient before deploying:
+In production, transient failures are common — model API rate limits, provider outages, flaky tool calls. Add [resilience middleware](/oss/langchain/middleware/built-in) to handle these automatically:
 
 :::python
 ```python

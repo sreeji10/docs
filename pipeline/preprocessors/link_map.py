@@ -34,6 +34,9 @@ LINK_MAPS: list[LinkMap] = [
             "langchain_text_splitters": "langchain-text-splitters/",
             # Deep Agents
             "create_deep_agent": "deepagents/graph/create_deep_agent",
+            "StoreBackend": "deepagents/backends/store/StoreBackend",
+            "StateBackend": "deepagents/backends/state/StateBackend",
+            "CompositeBackend": "deepagents/backends/composite/CompositeBackend",
             # Agents
             "create_agent": "langchain/agents/factory/create_agent",
             "create_agent(tools)": "langchain/agents/factory/create_agent",
@@ -517,6 +520,9 @@ LINK_MAPS: list[LinkMap] = [
             "createAgent": "langchain/index/createAgent",
             "fakeModel": "langchain/index/fakeModel",
             "createDeepAgent": "deepagents/agent/createDeepAgent",
+            "StoreBackend": "deepagents/backends/StoreBackend",
+            "StateBackend": "deepagents/backends/StateBackend",
+            "CompositeBackend": "deepagents/backends/CompositeBackend",
             "createMiddleware": "langchain/index/createMiddleware",
             "createReactAgent": "langchain-langgraph/prebuilt/createReactAgent",
             "createSupervisor": "langchain-langgraph-supervisor/createSupervisor",
@@ -565,7 +571,12 @@ LINK_MAPS: list[LinkMap] = [
             "ClearToolUsesEdit": "langchain/index/ClearToolUsesEdit",
             "ContextEdit": "langchain/index/ContextEdit",
             "toolRetryMiddleware": "langchain/index/toolRetryMiddleware",
+            "ToolRetryMiddleware": "langchain/index/toolRetryMiddleware",
             "modelRetryMiddleware": "langchain/index/modelRetryMiddleware",
+            "ModelRetryMiddleware": "langchain/index/modelRetryMiddleware",
+            "ModelFallbackMiddleware": "langchain/index/modelFallbackMiddleware",
+            "ModelCallLimitMiddleware": "langchain/index/modelCallLimitMiddleware",
+            "ToolCallLimitMiddleware": "langchain/index/toolCallLimitMiddleware",
             "systemPrompt": "types/langchain.index.CreateAgentParams.html#systemprompt",
             "openAIModerationMiddleware": "langchain/index/openAIModerationMiddleware",
             # LangSmith SDK - Vitest references
