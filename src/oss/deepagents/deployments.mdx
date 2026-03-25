@@ -1,0 +1,271 @@
+---
+title: Deployments
+description: Deploy Deep Agents to production with LangSmith Deployment, configure persistent memory, sandboxes, and production middleware
+---
+
+Deep Agents deploy on [LangSmith Deployment](/langsmith/deployment) (LSD). This page covers the decisions you need to make when going to production — persistent memory, sandboxes, and resilience. For general deployment setup, see the [LangSmith Deployment quickstart](/langsmith/deployment-quickstart).
+
+## Deployment configuration
+
+Define your agent in `langgraph.json`. For full configuration options, see [application structure](/langsmith/application-structure).
+
+```json
+{
+  "graphs": {
+    "agent": "./agent/server.py:agent"
+  }
+}
+```
+
+If your agent uses a webhook server (for [external triggers](/langsmith/use-webhooks)), co-deploy it as an HTTP app:
+
+```json
+{
+  "graphs": {
+    "agent": "./agent/server.py:agent"
+  },
+  "http": {
+    "app": "./server/webapp.py:app"
+  }
+}
+```
+
+<Note>
+    LSD automatically provisions a **store** and **checkpointer** for your agent. Omit both from `create_deep_agent()`. See [custom store](/langsmith/custom-store) and [configure checkpointer](/langsmith/configure-checkpointer) if you need to customize them.
+</Note>
+
+## Memory
+
+In local development, memory is often stored on disk or in an `InMemoryStore`. In production, you need persistent storage that isolates data between users.
+
+Use `StoreBackend` with a [namespace factory](/oss/deepagents/backends#namespace-factories) to persist memory in the LangGraph [Store](/langsmith/custom-store) that LSD provisions automatically. The namespace factory controls who can see what data.
+
+### Choose a scope
+
+| Scope | Who shares data | Use case |
+|---|---|---|
+| **Per-user** (most common) | Only that user, across all conversations | Personal preferences, instructions, learned context |
+| **Per-assistant** | All users of the same [assistant](/langsmith/assistants) | Shared team knowledge, project documentation |
+
+:::python
+```python
+from deepagents import create_deep_agent
+from deepagents.backends import StoreBackend
+
+# Per-user: each user gets private persistent memory
+agent = create_deep_agent(
+    backend=lambda rt: StoreBackend(
+        rt,
+        namespace=lambda ctx: (ctx.runtime.context.user_id, "filesystem"),
+    ),
+)
+```
+:::
+
+:::js
+```typescript
+import { createDeepAgent, StoreBackend } from "deepagents";
+
+// Per-user: each user gets private persistent memory
+const agent = createDeepAgent({
+  backend: (rt) => new StoreBackend(rt, {
+    namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+  }),
+});
+```
+:::
+
+With this setup, everything the agent writes persists across conversations for that user — AGENTS.md files, notes, learned preferences.
+
+You can also read and write to the store from your application code using the [Store API](/langsmith/custom-store). See [accessing memories from external code](/oss/deepagents/long-term-memory#accessing-memories-from-external-code-langsmith) for examples.
+
+For the full namespace factory API, see [namespace factories](/oss/deepagents/backends#namespace-factories). For memory patterns like self-improving instructions and knowledge bases, see [long-term memory](/oss/deepagents/long-term-memory).
+
+## Files
+
+Files are the agent's working scratch space — drafts, intermediate results, generated code. By default, these are ephemeral: they live in thread state (`StateBackend`) and are gone when the conversation ends.
+
+If your agent needs to run code, use a [sandbox backend](/oss/deepagents/sandboxes) instead. The agent gets the same filesystem tools plus an `execute` tool for shell commands, all isolated from your host. See [sandboxes](#sandboxes) below.
+
+To combine ephemeral files with persistent memory, use a `CompositeBackend`:
+
+:::python
+```python
+from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
+
+agent = create_deep_agent(
+    backend=lambda rt: CompositeBackend(
+        default=StateBackend(rt),  # Ephemeral working files
+        routes={
+            "/memories/": StoreBackend(
+                rt,
+                namespace=lambda ctx: (ctx.runtime.context.user_id, "filesystem"),
+            ),  # Persistent memory
+        },
+    ),
+)
+```
+:::
+
+:::js
+```typescript
+import { createDeepAgent, CompositeBackend, StateBackend, StoreBackend } from "deepagents";
+
+const agent = createDeepAgent({
+  backend: (rt) => new CompositeBackend(
+    new StateBackend(rt),  // Ephemeral working files
+    {
+      "/memories/": new StoreBackend(rt, {
+        namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+      }),  // Persistent memory
+    },
+  ),
+});
+```
+:::
+
+<Warning>
+    Do not use `FilesystemBackend` in deployed agents. It accesses the host filesystem directly and is not isolated between users or threads. Use `StoreBackend` for persistent storage and `StateBackend` or a sandbox for ephemeral files.
+</Warning>
+
+### Skills
+
+[Skills](/oss/deepagents/skills) are read-only capabilities (SKILL.md files) loaded from the backend at startup. Pass skill source paths when creating your agent — the skills middleware loads them from whatever backend you've configured:
+
+:::python
+```python
+agent = create_deep_agent(
+    backend=...,
+    skills=["/skills/"],  # Loaded from the default backend
+)
+```
+:::
+
+:::js
+```typescript
+const agent = createDeepAgent({
+  backend: ...,
+  skills: ["/skills/"],  // Loaded from the default backend
+});
+```
+:::
+
+In production, skills are typically stored in the `StoreBackend` alongside memory, or loaded via a `CompositeBackend` route. See [skills](/oss/deepagents/skills) for the full specification and source precedence rules.
+
+For full backend documentation, see [backends](/oss/deepagents/backends).
+
+## Sandboxes
+
+[Sandboxes](/oss/deepagents/sandboxes) give the agent an isolated environment to write and run code, install packages, clone repos, and produce artifacts — without affecting your infrastructure.
+
+The key production decision is **scope**: does each conversation get a fresh sandbox, or do conversations share one?
+
+| Scope | Sandbox ID stored on | What happens | Use case |
+|---|---|---|---|
+| **Thread-scoped** (most common) | [Thread](/langsmith/use-threads) metadata | Fresh sandbox per conversation. Cleaned up on TTL. | Data analysis, one-off coding, code review |
+| **Assistant-scoped** | [Assistant](/langsmith/assistants) config | All conversations share one sandbox. Files and packages persist. | Persistent dev environments, long-running projects |
+
+**Thread-scoped** is the right default for most agents. The user starts a conversation, the agent gets a clean sandbox, does its work, and the sandbox is cleaned up when the conversation ends or its TTL expires. Store the sandbox ID in [thread](/langsmith/use-threads) metadata so follow-up runs reconnect to the same sandbox.
+
+**Assistant-scoped** is for agents that maintain a long-running workspace — for example, a coding agent that iterates on a codebase over multiple sessions and needs to keep its git state, installed dependencies, and work-in-progress files.
+
+To combine a sandbox with persistent memory, use a `CompositeBackend` with the sandbox as the default and a `StoreBackend` route for `/memories/`:
+
+:::python
+```python
+from deepagents import create_deep_agent
+from deepagents.backends import CompositeBackend, StoreBackend
+
+agent = create_deep_agent(
+    backend=lambda rt: CompositeBackend(
+        default=sandbox_backend,  # Code execution + working files
+        routes={
+            "/memories/": StoreBackend(
+                rt,
+                namespace=lambda ctx: (ctx.runtime.context.user_id, "filesystem"),
+            ),  # Persistent memory
+        },
+    ),
+)
+```
+:::
+
+:::js
+```typescript
+import { createDeepAgent, CompositeBackend, StoreBackend } from "deepagents";
+
+const agent = createDeepAgent({
+  backend: (rt) => new CompositeBackend(
+    sandboxBackend,  // Code execution + working files
+    {
+      "/memories/": new StoreBackend(rt, {
+        namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+      }),  // Persistent memory
+    },
+  ),
+});
+```
+:::
+
+<Warning>
+    Assistant-scoped sandboxes accumulate state over time. Implement periodic cleanup, use snapshots to reset, or configure a TTL to prevent unbounded resource usage.
+</Warning>
+
+For provider setup, security, and lifecycle patterns, see the full [sandboxes guide](/oss/deepagents/sandboxes).
+
+## Production middleware
+
+Add [middleware](/oss/langchain/middleware/built-in) to make your agent resilient before deploying:
+
+:::python
+```python
+from langchain.agents.middleware import (
+    ModelRetryMiddleware,
+    ModelFallbackMiddleware,
+    ToolRetryMiddleware,
+)
+from deepagents import create_deep_agent
+
+agent = create_deep_agent(
+    model="claude-sonnet-4-6",
+    middleware=[
+        ModelRetryMiddleware(max_retries=3),  # Retry on transient API failures
+        ModelFallbackMiddleware("gpt-4.1"),   # Fall back if primary model is down
+        ToolRetryMiddleware(max_retries=2),   # Retry flaky tool calls
+    ],
+    ...
+)
+```
+:::
+
+:::js
+```typescript
+import { createDeepAgent } from "deepagents";
+import {
+  ModelRetryMiddleware,
+  ModelFallbackMiddleware,
+  ToolRetryMiddleware,
+} from "@langchain/langgraph";
+
+const agent = createDeepAgent({
+  model: "claude-sonnet-4-6",
+  middleware: [
+    new ModelRetryMiddleware({ maxRetries: 3 }),  // Retry on transient API failures
+    new ModelFallbackMiddleware("gpt-4.1"),       // Fall back if primary model is down
+    new ToolRetryMiddleware({ maxRetries: 2 }),   // Retry flaky tool calls
+  ],
+  ...
+});
+```
+:::
+
+| Middleware | Purpose |
+|---|---|
+| @[`ModelRetryMiddleware`] | Retry on rate limits, timeouts, server errors |
+| @[`ModelFallbackMiddleware`] | Try alternative models on failure |
+| @[`ToolRetryMiddleware`] | Retry flaky tool calls |
+| @[`ModelCallLimitMiddleware`] | Cap model calls per run |
+| @[`ToolCallLimitMiddleware`] | Cap tool executions per run |
+
+For full configuration options (backoff, jitter, exception filtering, failure handling), see [prebuilt middleware](/oss/langchain/middleware/built-in).

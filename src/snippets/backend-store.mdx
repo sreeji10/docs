@@ -4,7 +4,10 @@ from langgraph.store.memory import InMemoryStore
 from deepagents.backends import StoreBackend
 
 agent = create_deep_agent(
-    backend=(lambda rt: StoreBackend(rt)),
+    backend=lambda rt: StoreBackend(
+        rt,
+        namespace=lambda ctx: (ctx.runtime.context.user_id, "filesystem"),
+    ),
     store=InMemoryStore()  # Good for local dev; omit for LangSmith Deployment
 )
 ```
@@ -17,7 +20,9 @@ import { InMemoryStore } from "@langchain/langgraph";
 
 const store = new InMemoryStore();  // Good for local dev; omit for LangSmith Deployment
 const agent = createDeepAgent({
-  backend: (rt) => new StoreBackend(rt),
+  backend: (rt) => new StoreBackend(rt, {
+    namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+  }),
   store
 });
 ```
@@ -26,3 +31,7 @@ const agent = createDeepAgent({
 <Note>
     When deploying to [LangSmith Deployment](/langsmith/deployment), omit the `store` parameter. The platform automatically provisions a store for your agent.
 </Note>
+
+<Tip>
+    The `namespace` parameter controls data isolation. For multi-user deployments, always set a [namespace factory](/oss/deepagents/backends#namespace-factories) to isolate data per user or tenant.
+</Tip>
