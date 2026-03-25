@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from langchain_core.tools import tool
+from langchain.tools import tool
 
 EXAMPLE_DIR = Path(__file__).parent
 
@@ -153,7 +153,7 @@ def create_content_writer():
 # :snippet-start: content-builder-entry-point-py
 import sys
 
-from langchain_core.messages import HumanMessage
+from langchain.messages import HumanMessage
 
 if __name__ == "__main__":
     task = (
