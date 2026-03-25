@@ -221,7 +221,8 @@ await client.store.putItem(
   [assistantId, "filesystem"],
   "/preferences.txt",
   {
-    content: ["line 1", "line 2"],
+    content: "line 1\nline 2",
+    mimeType: "text/plain",
     created_at: "2024-01-15T10:30:00Z",
     modified_at: "2024-01-15T10:30:00Z"
   }
@@ -476,6 +477,7 @@ const agent = createDeepAgent({
 
 Files stored via `StoreBackend` use the following schema:
 
+:::python
 ```python
 {
     "content": ["line 1", "line 2", "line 3"],  # List of strings (one per line)
@@ -486,7 +488,6 @@ Files stored via `StoreBackend` use the following schema:
 
 You can use the `create_file_data` helper to create properly formatted file data:
 
-:::python
 ```python
 from deepagents.backends.utils import create_file_data
 
@@ -496,12 +497,18 @@ file_data = create_file_data("Hello\nWorld")
 :::
 
 :::js
-```typescript
-import { createFileData } from "deepagents";
+Text files use the following schema:
 
-const fileData = createFileData("Hello\nWorld");
-// { content: ['Hello', 'World'], created_at: '...', modified_at: '...' }
+```typescript
+{
+  content: "line 1\nline 2\nline 3",  // string
+  mimeType: "text/plain",             // MIME type
+  created_at: "2024-01-15T10:30:00Z", // ISO 8601 timestamp
+  modified_at: "2024-01-15T11:45:00Z" // ISO 8601 timestamp
+}
 ```
+
+Binary files (images, PDFs, etc.) use `content: Uint8Array` with an appropriate `mimeType` (e.g., `"image/png"`).
 :::
 
 For more details on backend protocols, see [Backends](/oss/deepagents/backends#protocol-reference).
