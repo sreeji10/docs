@@ -7,13 +7,24 @@ A local prototype typically runs as a single user in a single conversation. Goin
 
 This page covers the key decisions:
 
-- **[Memory](#memory)**: scope persistent data (preferences, instructions, [skills](/oss/deepagents/skills)) across users and conversations
-- **[Files](#files)**: configure the agent's filesystem, choosing which [backend](/oss/deepagents/backends) to use and what's ephemeral vs persistent
-- **[Sandboxes](#sandboxes)**: manage isolated environments for code execution
+- **[Deep Agents configuration](#deep-agents-configuration)**: scope memory, files, and sandboxes across users and conversations
 - **[Middleware](#middleware)**: add resilience, control flow limits, and guardrails
 - **[LangSmith Deployments](#langsmith-deployments)**: deploy with managed infrastructure, including [authentication](/langsmith/auth), [webhooks](/langsmith/use-webhooks), [cron jobs](/langsmith/cron-jobs), and [observability](/langsmith/observability)
 
-## Memory
+## Deep Agents configuration
+
+Memory, files, and sandboxes each need scoping across users and conversations. The right scope may differ per resource, but the options are the same:
+
+|  | **Single conversation** | **Multiple conversations** |
+|---|---|---|
+| **Single user** | Per-conversation | Per-user |
+| **Multiple users** | N/A | Per-assistant |
+
+<Tip>
+    If you have a single user, per-assistant and per-user scope are equivalent.
+</Tip>
+
+### Memory
 
 Without persistent memory, every conversation starts from scratch. A deployed agent needs to carry state across conversations, but the right scoping depends on your use case.
 
@@ -169,7 +180,7 @@ You can also read and write to the store from your application code using the [S
 
 For the full namespace factory API, see [namespace factories](/oss/deepagents/backends#namespace-factories). For memory patterns like self-improving instructions and knowledge bases, see [long-term memory](/oss/deepagents/long-term-memory).
 
-## Files
+### Files
 
 Deep Agents expose a virtual filesystem to the agent via tools like `read_file`, `write_file`, `edit_file`, `ls`, `glob`, and `grep`. The [backend](/oss/deepagents/backends) you choose determines where those files live.
 
@@ -185,7 +196,7 @@ For most deployed agents, the @[`CompositeBackend`] setup from the [memory examp
 
 For the full list of backends and how to build custom ones, see [backends](/oss/deepagents/backends).
 
-## Sandboxes
+### Sandboxes
 
 If your agent needs to execute code, it needs an isolated environment. [Sandboxes](/oss/deepagents/sandboxes) give the agent a filesystem and shell access in a container that can't affect your infrastructure. In production, always use a sandbox instead of `LocalShellBackend`, which has no isolation.
 
