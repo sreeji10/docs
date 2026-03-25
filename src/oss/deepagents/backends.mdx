@@ -437,7 +437,7 @@ type FileData =
     };
 ```
 
-Backends may encounter either format when reading from state or store. The framework handles both transparently. During rolling deployments where older readers need the legacy format, pass `fileFormat: "v1"` to the backend constructor (e.g., `new StoreBackend(rt, { fileFormat: "v1" })`).
+Backends may encounter either format when reading from state or store. The framework handles both transparently. New writes default to the current file format (v2). During rolling deployments where older readers need the legacy format, pass `fileFormat: "v1"` to the backend constructor (e.g., `new StoreBackend(rt, { fileFormat: "v1" })`).
 
 ## Protocol reference
 
