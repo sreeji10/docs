@@ -168,18 +168,16 @@ For the full namespace factory API, see [namespace factories](/oss/deepagents/ba
 
 ## Files
 
-Deep Agents expose a virtual filesystem to the agent via tools like `read_file`, `write_file`, `edit_file`, `ls`, `glob`, and `grep`. The [backend](/oss/deepagents/backends) you choose determines where those files live and how long they last.
+Deep Agents expose a virtual filesystem to the agent via tools like `read_file`, `write_file`, `edit_file`, `ls`, `glob`, and `grep`. The [backend](/oss/deepagents/backends) you choose determines where those files live.
 
-| Backend | Files persist | Scope | Best for |
-|---|---|---|---|
-| @[`StateBackend`] (default) | Within a single conversation | Per-[thread](/langsmith/use-threads) | Ephemeral scratch space — drafts, intermediate results |
-| @[`StoreBackend`] | Across conversations | Configurable via [namespace factory](/oss/deepagents/backends#namespace-factories) | Persistent working files, shared project state |
-| [Sandbox](/oss/deepagents/sandboxes) | Depends on [scope](#sandboxes) | Per-thread or per-assistant | Code execution with shell access |
-
-Most deployed agents use a @[`CompositeBackend`] to combine these — for example, `StateBackend` or a sandbox for working files plus `StoreBackend` for persistent `/memories/`. This is the pattern shown in the [memory examples above](#memory).
+For most deployed agents, the @[`CompositeBackend`] setup from the [memory examples above](#memory) is all you need — @[`StateBackend`] for ephemeral scratch work, @[`StoreBackend`] for anything that should persist. If your agent needs to execute code, swap `StateBackend` for a [sandbox](#sandboxes).
 
 <Warning>
-    Do not use `FilesystemBackend` in deployed agents. It accesses the host filesystem directly and is not isolated between users or threads.
+    Do not use `FilesystemBackend` or `LocalShellBackend` in deployed agents. They access the host filesystem directly and are not isolated between users or threads.
+</Warning>
+
+<Warning>
+    `StateBackend` stores files in LangGraph state, which is checkpointed at every agent step. Avoid writing very large files to state — they will be serialized and persisted on every step, increasing checkpoint size and latency. For large artifacts, use a `StoreBackend` route or a [sandbox](/oss/deepagents/sandboxes).
 </Warning>
 
 For the full list of backends and how to build custom ones, see [backends](/oss/deepagents/backends).
