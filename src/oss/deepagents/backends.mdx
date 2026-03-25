@@ -9,7 +9,7 @@ import BackendLocalShell from '/snippets/backend-local-shell.mdx';
 import BackendStore from '/snippets/backend-store.mdx';
 import BackendComposite from '/snippets/backend-composite.mdx';
 
-Deep Agents expose a filesystem surface to the agent via tools like `ls`, `read_file`, `write_file`, `edit_file`, `glob`, and `grep`. These tools operate through a pluggable backend. The `read_file` tool natively supports image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) across all backends, returning them as multimodal content blocks.
+Deep Agents expose a filesystem surface to the agent via tools like `ls`, `read_file`, `write_file`, `edit_file`, `glob`, and `grep`. These tools operate through a pluggable backend. The `read_file` tool natively supports binary files (images, PDFs, audio, video) across all backends, returning a `ReadResult` with typed `content` and `mimeType`.
 
 Sandboxes and the `LocalShellBackend` also provide and `execute` tool.
 
@@ -44,7 +44,7 @@ graph TB
     class Execute output
 ```
 
-This page explains how to [choose a backend](#specify-a-backend), [route different paths to different backends](#route-to-different-backends), [implement your own virtual filesystem](#use-a-virtual-filesystem) (e.g., S3 or Postgres), [add policy hooks](#add-policy-hooks), and [comply with the backend protocol](#protocol-reference).
+This page explains how to [choose a backend](#specify-a-backend), [route different paths to different backends](#route-to-different-backends), [implement your own virtual filesystem](#use-a-virtual-filesystem) (e.g., S3 or Postgres), [add policy hooks](#add-policy-hooks), [work with binary and multimodal files](#multimodal-and-binary-files), [comply with the backend protocol](#protocol-reference), and [migrate from V1](#migrating-from-v1).
 
 ## Quickstart
 
@@ -187,9 +187,13 @@ Use with extreme caution and only in appropriate environments.
 
 - Pass a backend to `create_deep_agent(backend=...)`. The filesystem middleware uses it for all tooling.
 - You can pass either:
-    - An instance implementing `BackendProtocol` (for example, `FilesystemBackend(root_dir=".")`), or
-    - A factory `BackendFactory = Callable[[ToolRuntime], BackendProtocol]` (for backends that need runtime like `StateBackend` or `StoreBackend`).
+    - An instance implementing `BackendProtocolV2` (for example, `FilesystemBackend(root_dir=".")`), or
+    - A factory `BackendFactory = Callable[[ToolRuntime], BackendProtocolV2]` (for backends that need runtime like `StateBackend` or `StoreBackend`).
 - If omitted, the default is `lambda rt: StateBackend(rt)`.
+
+<Note>
+V1 backends (implementing the deprecated `BackendProtocol`) are still accepted and automatically adapted to V2 at runtime via `adaptBackendProtocol()`. No code changes are required to keep using existing V1 backends.
+</Note>
 
 
 ## Route to different backends
@@ -243,18 +247,21 @@ Build a custom backend to project a remote or database filesystem (e.g., S3 or P
 Design guidelines:
 
 - Paths are absolute (`/x/y.txt`). Decide how to map them to your storage keys/rows.
-- Implement `ls_info` and `glob_info` efficiently (server-side listing where available, otherwise local filter).
-- Return user-readable error strings for missing files or invalid regex patterns.
+- Implement `ls` and `glob` efficiently (server-side listing where available, otherwise local filter).
+- All query methods (`ls`, `read`, `readRaw`, `grep`, `glob`) must return structured Result objects (e.g., `LsResult`, `ReadResult`) with an optional `error` field.
+- Support binary files in `read()` by returning `Uint8Array` content with the appropriate `mimeType`.
 - For external persistence, set `files_update=None` in results; only in-state backends should return a `files_update` dict.
 
 S3-style outline:
 
 :::python
 ```python
-from deepagents.backends.protocol import BackendProtocol, WriteResult, EditResult
-from deepagents.backends.utils import FileInfo, GrepMatch
+from deepagents.backends.protocol import (
+    BackendProtocolV2, WriteResult, EditResult,
+    LsResult, ReadResult, ReadRawResult, GrepResult, GlobResult,
+)
 
-class S3Backend(BackendProtocol):
+class S3Backend(BackendProtocolV2):
     def __init__(self, bucket: str, prefix: str = ""):
         self.bucket = bucket
         self.prefix = prefix.rstrip("/")
@@ -262,20 +269,25 @@ class S3Backend(BackendProtocol):
     def _key(self, path: str) -> str:
         return f"{self.prefix}{path}"
 
-    def ls_info(self, path: str) -> list[FileInfo]:
-        # List objects under _key(path); build FileInfo entries (path, size, modified_at)
+    def ls(self, path: str) -> LsResult:
+        # List objects under _key(path); return LsResult(files=[...])
         ...
 
-    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> str:
-        # Fetch object; return numbered content or an error string
+    def read(self, file_path: str, offset: int = 0, limit: int = 500) -> ReadResult:
+        # Fetch object; return ReadResult(content=..., mimeType=...)
+        # For binary files, return Uint8Array content
         ...
 
-    def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None) -> list[GrepMatch] | str:
-        # Optionally filter server‑side; else list and scan content
+    def read_raw(self, file_path: str) -> ReadRawResult:
+        # Return ReadRawResult(data=FileData)
         ...
 
-    def glob_info(self, pattern: str, path: str = "/") -> list[FileInfo]:
-        # Apply glob relative to path across keys
+    def grep(self, pattern: str, path: str | None = None, glob: str | None = None) -> GrepResult:
+        # Search text files; skip binary; return GrepResult(matches=[...])
+        ...
+
+    def glob(self, pattern: str, path: str = "/") -> GlobResult:
+        # Apply glob relative to path across keys; return GlobResult(files=[...])
         ...
 
     def write(self, file_path: str, content: str) -> WriteResult:
@@ -288,13 +300,68 @@ class S3Backend(BackendProtocol):
 ```
 :::
 
+:::js
+```typescript
+import type {
+  BackendProtocolV2, WriteResult, EditResult,
+  LsResult, ReadResult, ReadRawResult, GrepResult, GlobResult,
+} from "deepagents";
+
+class S3Backend implements BackendProtocolV2 {
+  constructor(private bucket: string, private prefix: string = "") {
+    this.prefix = prefix.replace(/\/$/, "");
+  }
+
+  private key(path: string): string {
+    return `${this.prefix}${path}`;
+  }
+
+  async ls(path: string): Promise<LsResult> {
+    // List objects under key(path); return { files: [...] }
+    ...
+  }
+
+  async read(filePath: string, offset?: number, limit?: number): Promise<ReadResult> {
+    // Fetch object; return { content, mimeType }
+    // For binary files, return Uint8Array content
+    ...
+  }
+
+  async readRaw(filePath: string): Promise<ReadRawResult> {
+    // Return { data: FileData }
+    ...
+  }
+
+  async grep(pattern: string, path?: string | null, glob?: string | null): Promise<GrepResult> {
+    // Search text files; skip binary; return { matches: [...] }
+    ...
+  }
+
+  async glob(pattern: string, path?: string): Promise<GlobResult> {
+    // Apply glob relative to path; return { files: [...] }
+    ...
+  }
+
+  async write(filePath: string, content: string): Promise<WriteResult> {
+    // Enforce create-only semantics; return { path: filePath, filesUpdate: null }
+    ...
+  }
+
+  async edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean): Promise<EditResult> {
+    // Read → replace → write → return { path, occurrences }
+    ...
+  }
+}
+```
+:::
+
 Postgres-style outline:
 
-- Table `files(path text primary key, content text, created_at timestamptz, modified_at timestamptz)`
+- Table `files(path text primary key, content text, mime_type text, created_at timestamptz, modified_at timestamptz)`
 - Map tool operations onto SQL:
-  - `ls_info` uses `WHERE path LIKE $1 || '%'`
-  - `glob_info` filter in SQL or fetch then apply glob in Python
-  - `grep_raw` can fetch candidate rows by extension or last modified time, then scan lines
+  - `ls` uses `WHERE path LIKE $1 || '%'` → return `LsResult`
+  - `glob` filter in SQL or fetch then apply glob in Python → return `GlobResult`
+  - `grep` can fetch candidate rows by extension or last modified time, then scan lines → return `GrepResult`
 
 ## Add policy hooks
 
@@ -328,25 +395,29 @@ Generic wrapper (works with any backend):
 
 :::python
 ```python
-from deepagents.backends.protocol import BackendProtocol, WriteResult, EditResult
-from deepagents.backends.utils import FileInfo, GrepMatch
+from deepagents.backends.protocol import (
+    BackendProtocolV2, WriteResult, EditResult,
+    LsResult, ReadResult, ReadRawResult, GrepResult, GlobResult,
+)
 
-class PolicyWrapper(BackendProtocol):
-    def __init__(self, inner: BackendProtocol, deny_prefixes: list[str] | None = None):
+class PolicyWrapper(BackendProtocolV2):
+    def __init__(self, inner: BackendProtocolV2, deny_prefixes: list[str] | None = None):
         self.inner = inner
         self.deny_prefixes = [p if p.endswith("/") else p + "/" for p in (deny_prefixes or [])]
 
     def _deny(self, path: str) -> bool:
         return any(path.startswith(p) for p in self.deny_prefixes)
 
-    def ls_info(self, path: str) -> list[FileInfo]:
-        return self.inner.ls_info(path)
-    def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> str:
+    def ls(self, path: str) -> LsResult:
+        return self.inner.ls(path)
+    def read(self, file_path: str, offset: int = 0, limit: int = 500) -> ReadResult:
         return self.inner.read(file_path, offset=offset, limit=limit)
-    def grep_raw(self, pattern: str, path: str | None = None, glob: str | None = None) -> list[GrepMatch] | str:
-        return self.inner.grep_raw(pattern, path, glob)
-    def glob_info(self, pattern: str, path: str = "/") -> list[FileInfo]:
-        return self.inner.glob_info(pattern, path)
+    def read_raw(self, file_path: str) -> ReadRawResult:
+        return self.inner.read_raw(file_path)
+    def grep(self, pattern: str, path: str | None = None, glob: str | None = None) -> GrepResult:
+        return self.inner.grep(pattern, path, glob)
+    def glob(self, pattern: str, path: str = "/") -> GlobResult:
+        return self.inner.glob(pattern, path)
     def write(self, file_path: str, content: str) -> WriteResult:
         if self._deny(file_path):
             return WriteResult(error=f"Writes are not allowed under {file_path}")
@@ -358,26 +429,265 @@ class PolicyWrapper(BackendProtocol):
 ```
 :::
 
+:::js
+```typescript
+import type {
+  BackendProtocolV2, WriteResult, EditResult,
+  LsResult, ReadResult, ReadRawResult, GrepResult, GlobResult,
+} from "deepagents";
+
+class PolicyWrapper implements BackendProtocolV2 {
+  private denyPrefixes: string[];
+
+  constructor(private inner: BackendProtocolV2, denyPrefixes?: string[]) {
+    this.denyPrefixes = (denyPrefixes ?? []).map(p => p.endsWith("/") ? p : p + "/");
+  }
+
+  private deny(path: string): boolean {
+    return this.denyPrefixes.some(p => path.startsWith(p));
+  }
+
+  ls(path: string) { return this.inner.ls(path); }
+  read(filePath: string, offset?: number, limit?: number) { return this.inner.read(filePath, offset, limit); }
+  readRaw(filePath: string) { return this.inner.readRaw(filePath); }
+  grep(pattern: string, path?: string | null, glob?: string | null) { return this.inner.grep(pattern, path, glob); }
+  glob(pattern: string, path?: string) { return this.inner.glob(pattern, path); }
+
+  write(filePath: string, content: string): WriteResult {
+    if (this.deny(filePath)) return { error: `Writes are not allowed under ${filePath}` };
+    return this.inner.write(filePath, content);
+  }
+
+  edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean): EditResult {
+    if (this.deny(filePath)) return { error: `Edits are not allowed under ${filePath}` };
+    return this.inner.edit(filePath, oldString, newString, replaceAll);
+  }
+}
+```
+:::
+
+## Multimodal and binary files
+
+V2 backends support binary files natively. When `read()` encounters a binary file (determined by MIME type from the file extension), it returns a `ReadResult` with `Uint8Array` content and the corresponding `mimeType`. Text files return `string` content.
+
+### Supported MIME types
+
+| Category | Extensions | MIME types |
+|----------|-----------|------------|
+| Images | `.png`, `.jpg`/`.jpeg`, `.gif`, `.webp`, `.svg`, `.heic`, `.heif` | `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/svg+xml`, `image/heic`, `image/heif` |
+| Audio | `.mp3`, `.wav`, `.aiff`, `.aac`, `.ogg`, `.flac` | `audio/mpeg`, `audio/wav`, `audio/aiff`, `audio/aac`, `audio/ogg`, `audio/flac` |
+| Video | `.mp4`, `.webm`, `.mpeg`/`.mpg`, `.mov`, `.avi`, `.flv`, `.wmv`, `.3gpp` | `video/mp4`, `video/webm`, `video/mpeg`, `video/quicktime`, `video/x-msvideo`, `video/x-flv`, `video/x-ms-wmv`, `video/3gpp` |
+| Documents | `.pdf`, `.ppt`, `.pptx` | `application/pdf`, `application/vnd.ms-powerpoint`, `application/vnd.openxmlformats-officedocument.presentationml.presentation` |
+| Text | `.txt`, `.html`, `.json`, `.js`, `.ts`, `.py`, etc. | `text/plain`, `text/html`, `application/json`, etc. |
+
+### Reading binary files
+
+:::js
+```typescript
+const result = await backend.read("/workspace/screenshot.png");
+
+if (result.error) {
+  console.error(result.error);
+} else if (result.content instanceof Uint8Array) {
+  // Binary file — content is Uint8Array, mimeType is set
+  console.log(`Binary file: ${result.mimeType}`); // "image/png"
+} else {
+  // Text file — content is string
+  console.log(`Text file: ${result.mimeType}`); // "text/plain"
+}
+```
+:::
+
+:::python
+```python
+result = backend.read("/workspace/screenshot.png")
+
+if result.error:
+    print(result.error)
+elif isinstance(result.content, bytes):
+    # Binary file — content is bytes, mime_type is set
+    print(f"Binary file: {result.mime_type}")  # "image/png"
+else:
+    # Text file — content is str
+    print(f"Text file: {result.mime_type}")  # "text/plain"
+```
+:::
+
+### FileData format
+
+`FileData` is the type used to store file content in state and store backends.
+
+```typescript
+interface FileData {
+  content: string | Uint8Array;  // string for text, Uint8Array for binary
+  mimeType: string;              // e.g. "text/plain", "image/png"
+  created_at: string;            // ISO 8601 timestamp
+  modified_at: string;           // ISO 8601 timestamp
+}
+```
+
+<Accordion title="Legacy format">
+  Older data may use a legacy format where `content` is a `string[]` (one entry per line) and `mimeType` is absent. The framework reads both formats transparently. Use `migrateToFileDataV2()` to normalize legacy data if needed.
+</Accordion>
+
+<Tip>
+Use `BackendOptions.fileFormat` to control the write format. Set `fileFormat: "v1"` during rolling deployments where older readers need the legacy line-array format. The default is `"v2"`.
+</Tip>
+
+### Utility functions
+
+| Function | Description |
+|----------|-------------|
+| `createFileData(content, createdAt?, fileFormat?, mimeType?)` | Create a `FileData` object in the requested format |
+| `isFileDataV1(data)` | Type guard for V1 format (content is `string[]`) |
+| `migrateToFileDataV2(data, filePath)` | Convert V1 data to V2 (joins lines, infers MIME type) |
+| `isTextMimeType(mimeType)` | Check if a MIME type is text-based |
+| `getMimeType(filePath)` | Get MIME type from file extension |
+
 ## Protocol reference
 
-Backends must implement the `BackendProtocol`.
+Backends implement `BackendProtocolV2`. All query methods return structured Result objects with `{ error?: string, ...data }`.
 
-Required endpoints:
-- `ls_info(path: str) -> list[FileInfo]`
-  - Return entries with at least `path`. Include `is_dir`, `size`, `modified_at` when available. Sort by `path` for deterministic output.
-- `read(file_path: str, offset: int = 0, limit: int = 2000) -> str`
-  - Return numbered content. On missing file, return `"Error: File '/x' not found"`.
-- `grep_raw(pattern: str, path: Optional[str] = None, glob: Optional[str] = None) -> list[GrepMatch] | str`
-  - Return structured matches. For an invalid regex, return a string like `"Invalid regex pattern: ..."` (do not raise).
-- `glob_info(pattern: str, path: str = "/") -> list[FileInfo]`
-  - Return matched files as `FileInfo` entries (empty list if none).
-- `write(file_path: str, content: str) -> WriteResult`
-  - Create-only. On conflict, return `WriteResult(error=...)`. On success, set `path` and for state backends set `files_update={...}`; external backends should use `files_update=None`.
-- `edit(file_path: str, old_string: str, new_string: str, replace_all: bool = False) -> EditResult`
-  - Enforce uniqueness of `old_string` unless `replace_all=True`. If not found, return error. Include `occurrences` on success.
+### Required methods
 
-Supporting types:
-- `WriteResult(error, path, files_update)`
-- `EditResult(error, path, files_update, occurrences)`
-- `FileInfo` with fields: `path` (required), optionally `is_dir`, `size`, `modified_at`.
-- `GrepMatch` with fields: `path`, `line`, `text`.
+- **`ls(path: string) → LsResult`**
+  - List files and directories in the specified directory (non-recursive).
+  - Directories have a trailing `/` in their path and `is_dir=true`.
+  - Return entries with at least `path`. Include `is_dir`, `size`, `modified_at` when available.
+
+- **`read(filePath: string, offset?: number, limit?: number) → ReadResult`**
+  - Read file content. For text files, content is paginated by line offset/limit (default offset 0, limit 500). For binary files, the full raw `Uint8Array` content is returned with the `mimeType` field set.
+  - On missing file, return `{ error: "File '/x' not found" }`.
+
+- **`readRaw(filePath: string) → ReadRawResult`**
+  - Read file content as raw `FileData`. Returns the full file data including timestamps.
+
+- **`grep(pattern: string, path?: string, glob?: string) → GrepResult`**
+  - Search file contents for a literal text pattern. Binary files (determined by MIME type) are skipped.
+  - Return structured `GrepMatch` entries. On failure, return `{ error: "..." }`.
+
+- **`glob(pattern: string, path?: string) → GlobResult`**
+  - Return files matching a glob pattern as `FileInfo` entries.
+
+- **`write(filePath: string, content: string) → WriteResult`**
+  - Create-only semantics. On conflict, return `{ error: "..." }`. On success, set `path` and for state backends set `filesUpdate={...}`; external backends should use `filesUpdate=null`.
+
+- **`edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean) → EditResult`**
+  - Enforce uniqueness of `oldString` unless `replaceAll=true`. If not found, return error. Include `occurrences` on success.
+
+### Optional methods
+
+- **`uploadFiles(files: Array<[string, Uint8Array]>) → FileUploadResponse[]`** — Upload multiple files (for sandbox backends).
+- **`downloadFiles(paths: string[]) → FileDownloadResponse[]`** — Download multiple files (for sandbox backends).
+
+### Result types
+
+| Type | Success fields | Error field |
+|------|----------------|-------------|
+| `ReadResult` | `content: string \| Uint8Array`, `mimeType: string` | `error` |
+| `ReadRawResult` | `data: FileData` | `error` |
+| `LsResult` | `files: FileInfo[]` | `error` |
+| `GlobResult` | `files: FileInfo[]` | `error` |
+| `GrepResult` | `matches: GrepMatch[]` | `error` |
+| `WriteResult` | `path: string`, `filesUpdate`, `metadata` | `error` |
+| `EditResult` | `path: string`, `filesUpdate`, `occurrences: number`, `metadata` | `error` |
+
+### Supporting types
+
+- **`FileInfo`** — `path` (required), optionally `is_dir`, `size`, `modified_at`.
+- **`GrepMatch`** — `path`, `line` (1-indexed), `text`.
+- **`FileData`** — File content with timestamps. See [FileData format](#filedata-format).
+- **`ExecuteResponse`** — `output`, `exitCode`, `truncated`.
+
+### Sandbox extension
+
+`SandboxBackendProtocolV2` extends `BackendProtocolV2` with:
+
+- **`execute(command: string) → ExecuteResponse`** — Run a shell command in the sandbox.
+- **`readonly id: string`** — Unique identifier for the sandbox instance.
+
+Use the `isSandboxBackend()` type guard to check if a backend supports execution.
+
+## Migrating from V1
+
+<Accordion title="Migration guide">
+
+### Method renames
+
+| V1 method | V2 method | Return type change |
+|-----------|-----------|-------------------|
+| `lsInfo(path)` | `ls(path)` | `FileInfo[]` → `LsResult` |
+| `read(filePath, offset, limit)` | `read(filePath, offset, limit)` | `string` → `ReadResult` |
+| `readRaw(filePath)` | `readRaw(filePath)` | `FileData` → `ReadRawResult` |
+| `grepRaw(pattern, path, glob)` | `grep(pattern, path, glob)` | `GrepMatch[] \| string` → `GrepResult` |
+| `globInfo(pattern, path)` | `glob(pattern, path)` | `FileInfo[]` → `GlobResult` |
+| `write(...)` | `write(...)` | Unchanged (`WriteResult`) |
+| `edit(...)` | `edit(...)` | Unchanged (`EditResult`) |
+
+### Type renames
+
+| V1 type | V2 type |
+|---------|---------|
+| `BackendProtocol` | `BackendProtocolV2` |
+| `SandboxBackendProtocol` | `SandboxBackendProtocolV2` |
+
+### Adaptation utilities
+
+If you have existing V1 backends that you need to use with V2-only code, use the adaptation functions:
+
+:::js
+```typescript
+import { adaptBackendProtocol, adaptSandboxProtocol } from "deepagents";
+
+// Adapt a V1 backend to V2
+const v2Backend = adaptBackendProtocol(v1Backend);
+
+// Adapt a V1 sandbox to V2
+const v2Sandbox = adaptSandboxProtocol(v1Sandbox);
+```
+:::
+
+:::python
+```python
+from deepagents.backends.utils import adapt_backend_protocol, adapt_sandbox_protocol
+
+# Adapt a V1 backend to V2
+v2_backend = adapt_backend_protocol(v1_backend)
+
+# Adapt a V1 sandbox to V2
+v2_sandbox = adapt_sandbox_protocol(v1_sandbox)
+```
+:::
+
+<Note>
+The framework auto-adapts V1 backends passed to `create_deep_agent()`. Manual adaptation is only needed when calling protocol methods directly.
+</Note>
+
+### FileData migration
+
+Use `migrateToFileDataV2()` to normalize legacy V1 data (line arrays) to V2 format (single string + MIME type):
+
+:::js
+```typescript
+import { migrateToFileDataV2, isFileDataV1 } from "deepagents";
+
+if (isFileDataV1(data)) {
+  const v2Data = migrateToFileDataV2(data, "/path/to/file.txt");
+  // { content: "line1\nline2", mimeType: "text/plain", created_at: ..., modified_at: ... }
+}
+```
+:::
+
+:::python
+```python
+from deepagents.backends.utils import migrate_to_file_data_v2, is_file_data_v1
+
+if is_file_data_v1(data):
+    v2_data = migrate_to_file_data_v2(data, "/path/to/file.txt")
+    # {"content": "line1\nline2", "mimeType": "text/plain", ...}
+```
+:::
+
+For rolling deployments where older readers still expect V1 format, set `BackendOptions.fileFormat: "v1"` to continue writing in the legacy format.
+
+</Accordion>

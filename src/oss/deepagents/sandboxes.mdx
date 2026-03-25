@@ -280,7 +280,7 @@ graph TB
 
 This design means:
 - **Adding a new provider is straightforward.** Implement `execute()`—the base class handles everything else.
-- **The `execute` tool is conditionally available.** On every model call, the harness checks whether the backend implements `SandboxBackendProtocol`. If not, the tool is filtered out and the agent never sees it.
+- **The `execute` tool is conditionally available.** On every model call, the harness checks whether the backend implements `SandboxBackendProtocolV2`. If not, the tool is filtered out and the agent never sees it.
 
 When the agent calls the `execute` tool, it provides a `command` string and gets back the combined stdout/stderr, exit code, and a truncation notice if the output was too large.
 

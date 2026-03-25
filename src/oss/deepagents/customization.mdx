@@ -645,7 +645,8 @@ You can pass one or more file paths to the `memory` parameter when creating your
     function createFileData(content: string): FileData {
       const now = new Date().toISOString();
       return {
-        content: content.split("\n"),
+        content,
+        mimeType: "text/plain",
         created_at: now,
         modified_at: now,
       };
@@ -696,7 +697,8 @@ You can pass one or more file paths to the `memory` parameter when creating your
     function createFileData(content: string): FileData {
       const now = new Date().toISOString();
       return {
-        content: content.split("\n"),
+        content,
+        mimeType: "text/plain",
         created_at: now,
         modified_at: now,
       };
