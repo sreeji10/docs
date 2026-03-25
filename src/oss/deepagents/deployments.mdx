@@ -3,7 +3,9 @@ title: Deployments
 description: Deploy Deep Agents to production with LangSmith Deployment, configure persistent memory, sandboxes, and production middleware
 ---
 
-Deep Agents deploy on [LangSmith Deployment](/langsmith/deployment) (LSD). This page covers the decisions you need to make when going to production — persistent memory, sandboxes, and resilience. For general deployment setup, see the [LangSmith Deployment quickstart](/langsmith/deployment-quickstart).
+This page covers how to take your local Deep Agent to production. The main decisions are how to scope [memory](#memory), [files and skills](#files), and [sandboxes](#sandboxes) for your deployed agent, and what [resilience middleware](#production-middleware) to add.
+
+Deep Agents deploy on [LangSmith Deployment](/langsmith/deployment) (LSD), which handles infrastructure for you — [assistants](/langsmith/assistants), [threads](/langsmith/use-threads), [runs](/langsmith/runs), a provisioned store and checkpointer — and can expose your agent via [MCP](/langsmith/server-mcp), [A2A](/langsmith/server-a2a), [webhooks](/langsmith/use-webhooks), or [cron](/langsmith/cron-jobs). For general deployment setup, see the [LangSmith Deployment quickstart](/langsmith/deployment-quickstart).
 
 ## Deployment configuration
 
