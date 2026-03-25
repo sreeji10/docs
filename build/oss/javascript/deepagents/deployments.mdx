@@ -1,0 +1,207 @@
+---
+title: Deployments
+description: Deploy Deep Agents to production with LangSmith Deployment, configure persistent memory, sandboxes, and production middleware
+---
+
+This page covers how to take your local Deep Agent to production. The main decisions are how to scope [memory and skills](#memory) that persist across conversations, how to handle [your agent's filesystem](#files), how to manage [sandbox](#sandboxes) lifecycle for code execution, and what [resilience middleware](#production-middleware) to add.
+
+Deep Agents deploy on [LangSmith Deployment](/langsmith/deployment) (LSD), which handles infrastructure for you — [assistants](/langsmith/assistants), [threads](/langsmith/use-threads), [runs](/langsmith/runs), a provisioned store and checkpointer — and can expose your agent via [MCP](/langsmith/server-mcp), [A2A](/langsmith/server-a2a), [webhooks](/langsmith/use-webhooks), or [cron](/langsmith/cron-jobs). For general deployment setup, see the [LangSmith Deployment quickstart](/langsmith/deployment-quickstart).
+
+## Memory
+
+In local development, memory is often stored on disk or in an `InMemoryStore`. In production, you need persistent storage that isolates data between users.
+
+Use [`StoreBackend`](https://reference.langchain.com/javascript/deepagents/backends/StoreBackend) with a [namespace factory](/oss/javascript/deepagents/backends#namespace-factories) to persist memory in the LangGraph [Store](/langsmith/custom-store) that LSD provisions automatically. The namespace factory controls who can see what data.
+
+### Choose a scope
+
+The [namespace factory](/oss/javascript/deepagents/backends#namespace-factories) on `StoreBackend` controls who sees what data:
+
+<Tabs>
+  <Tab title="Per-user (most common)">
+    Each user gets private persistent memory across all their conversations. Use this for personal preferences, instructions, and learned context.
+
+
+
+```typescript
+import { createDeepAgent, StoreBackend } from "deepagents";
+
+const agent = createDeepAgent({
+  backend: (rt) => new StoreBackend(rt, {
+    namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+  }),
+});
+```
+
+
+  </Tab>
+  <Tab title="Per-assistant">
+    All users of the same [assistant](/langsmith/assistants) share memory. Use this for shared team knowledge or project documentation.
+
+
+
+```typescript
+import { getConfig } from "@langchain/langgraph";
+import { createDeepAgent, StoreBackend } from "deepagents";
+
+const agent = createDeepAgent({
+  backend: (rt) => new StoreBackend(rt, {
+    namespace: (ctx) => {
+      const config = getConfig();
+      return [config.metadata.assistantId, "filesystem"];
+    },
+  }),
+});
+```
+
+
+  </Tab>
+</Tabs>
+
+You can also read and write to the store from your application code using the [Store API](/langsmith/custom-store). See [accessing memories from external code](/oss/javascript/deepagents/long-term-memory#accessing-memories-from-external-code-langsmith) for examples.
+
+For the full namespace factory API, see [namespace factories](/oss/javascript/deepagents/backends#namespace-factories). For memory patterns like self-improving instructions and knowledge bases, see [long-term memory](/oss/javascript/deepagents/long-term-memory).
+
+### Skills
+
+[Skills](/oss/javascript/deepagents/skills) are reusable agent capabilities defined as SKILL.md files. Like memory, skills are persistent content loaded from the backend — and they're scoped the same way. Skills stored in a `StoreBackend` share whatever namespace you've configured, so per-user skills stay private and per-assistant skills are shared across users.
+
+Pass skill source paths when creating your agent:
+
+
+
+```typescript
+const agent = createDeepAgent({
+  backend: (rt) => new StoreBackend(rt, {
+    namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+  }),
+  skills: ["/skills/"],  // Loaded from the same StoreBackend
+});
+```
+
+
+Skills support layering — later sources override earlier ones for skills with the same name. See [skills](/oss/javascript/deepagents/skills) for the full specification, source precedence, and subagent skills.
+
+## Files
+
+Working files — drafts, intermediate results, generated code — are typically scoped per-thread. They live in [`StateBackend`](https://reference.langchain.com/javascript/deepagents/backends/StateBackend) (the default) and are gone when the conversation ends. Each [thread](/langsmith/use-threads) gets a clean workspace.
+
+If your agent needs to run code, use a [sandbox backend](/oss/javascript/deepagents/sandboxes) instead. The agent gets the same filesystem tools plus an `execute` tool for shell commands, all isolated from your host. See [sandboxes](#sandboxes) below.
+
+Most deployed agents combine per-thread working files with cross-thread persistent storage (for [memory](#memory) and [skills](#skills)). Use a [`CompositeBackend`](https://reference.langchain.com/javascript/deepagents/backends/CompositeBackend) to route different paths to different backends — ephemeral files go to `StateBackend` or a sandbox, while `/memories/` routes to `StoreBackend` and persists across threads:
+
+
+
+```typescript
+import { createDeepAgent, CompositeBackend, StateBackend, StoreBackend } from "deepagents";
+
+const agent = createDeepAgent({
+  backend: (rt) => new CompositeBackend(
+    new StateBackend(rt),  // Ephemeral working files
+    {
+      "/memories/": new StoreBackend(rt, {
+        namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+      }),  // Persistent memory
+    },
+  ),
+});
+```
+
+
+<Warning>
+    Do not use `FilesystemBackend` in deployed agents. It accesses the host filesystem directly and is not isolated between users or threads. Use `StoreBackend` for persistent storage and `StateBackend` or a sandbox for ephemeral files.
+</Warning>
+
+For full backend documentation, see [backends](/oss/javascript/deepagents/backends).
+
+## Sandboxes
+
+[Sandboxes](/oss/javascript/deepagents/sandboxes) give the agent an isolated environment to write and run code, install packages, clone repos, and produce artifacts — without affecting your infrastructure. In production, use a sandbox instead of `LocalShellBackend`, which has no isolation.
+
+The key production decision is **scope**: does each conversation get a fresh sandbox, or do conversations share one? See [lifecycle and scoping](/oss/javascript/deepagents/sandboxes#lifecycle-and-scoping) for full details.
+
+<Tabs>
+  <Tab title="Thread-scoped (most common)">
+    Each conversation gets its own sandbox. The sandbox is created when the first [run](/langsmith/runs) starts and reused for follow-up messages on the same [thread](/langsmith/use-threads). Cleaned up when the thread ends or the sandbox [TTL](/langsmith/configure-ttl) expires. Store the sandbox ID in thread metadata so follow-up runs reconnect.
+
+    Best for: data analysis, one-off coding tasks, code review.
+  </Tab>
+  <Tab title="Assistant-scoped">
+    All conversations share one sandbox. The sandbox ID is stored on the [assistant](/langsmith/assistants) config, so every conversation returns to the same environment. Files, installed packages, and cloned repositories persist across conversations.
+
+    Best for: persistent dev environments, long-running projects where the agent iterates on a codebase over multiple sessions.
+
+    <Warning>
+        Assistant-scoped sandboxes accumulate state over time. Implement periodic cleanup, use snapshots to reset, or configure a TTL to prevent unbounded resource usage.
+    </Warning>
+  </Tab>
+</Tabs>
+
+To combine a sandbox with persistent memory, use a `CompositeBackend` with the sandbox as the default and a `StoreBackend` route for `/memories/`:
+
+
+
+```typescript
+import { createDeepAgent, CompositeBackend, StoreBackend } from "deepagents";
+
+const agent = createDeepAgent({
+  backend: (rt) => new CompositeBackend(
+    sandboxBackend,  // Code execution + working files
+    {
+      "/memories/": new StoreBackend(rt, {
+        namespace: (ctx) => [ctx.runtime.context.userId, "filesystem"],
+      }),  // Persistent memory
+    },
+  ),
+});
+```
+
+
+For provider setup, security, and lifecycle patterns, see the full [sandboxes guide](/oss/javascript/deepagents/sandboxes).
+
+## Production middleware
+
+In production, transient failures are common — model API rate limits, provider outages, flaky tool calls. Add [resilience middleware](/oss/javascript/langchain/middleware/built-in) to handle these automatically:
+
+
+
+```typescript
+import { createDeepAgent } from "deepagents";
+import {
+  ModelRetryMiddleware,
+  ModelFallbackMiddleware,
+  ToolRetryMiddleware,
+} from "@langchain/langgraph";
+
+const agent = createDeepAgent({
+  model: "claude-sonnet-4-6",
+  middleware: [
+    new ModelRetryMiddleware({ maxRetries: 3 }),  // Retry on transient API failures
+    new ModelFallbackMiddleware("gpt-4.1"),       // Fall back if primary model is down
+    new ToolRetryMiddleware({ maxRetries: 2 }),   // Retry flaky tool calls
+  ],
+  ...
+});
+```
+
+
+| Middleware | Purpose |
+|---|---|
+| [`ModelRetryMiddleware`](https://reference.langchain.com/javascript/langchain/index/modelRetryMiddleware) | Retry on rate limits, timeouts, server errors |
+| [`ModelFallbackMiddleware`](https://reference.langchain.com/javascript/langchain/index/modelFallbackMiddleware) | Try alternative models on failure |
+| [`ToolRetryMiddleware`](https://reference.langchain.com/javascript/langchain/index/toolRetryMiddleware) | Retry flaky tool calls |
+| [`ModelCallLimitMiddleware`](https://reference.langchain.com/javascript/langchain/index/modelCallLimitMiddleware) | Cap model calls per run |
+| [`ToolCallLimitMiddleware`](https://reference.langchain.com/javascript/langchain/index/toolCallLimitMiddleware) | Cap tool executions per run |
+
+For full configuration options (backoff, jitter, exception filtering, failure handling), see [prebuilt middleware](/oss/javascript/langchain/middleware/built-in).
+
+---
+
+<div className="source-links">
+<Callout icon="edit">
+    [Edit this page on GitHub](https://github.com/langchain-ai/docs/edit/main/src/oss/deepagents/deployments.mdx) or [file an issue](https://github.com/langchain-ai/docs/issues/new/choose).
+</Callout>
+<Callout icon="terminal-2">
+    [Connect these docs](/use-these-docs) to Claude, VSCode, and more via MCP for real-time answers.
+</Callout>
+</div>
