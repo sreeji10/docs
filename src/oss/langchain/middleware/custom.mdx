@@ -1067,6 +1067,98 @@ console.log(result.messages.at(-1)?.content);
 
 ## Examples
 
+### Dynamic prompt
+
+Dynamically modify the system prompt at runtime to inject context, user-specific instructions, or other information before each model call. This is one of the most common middleware use cases.
+
+:::python
+
+Use the `system_message` field on `ModelRequest` to read and modify the system prompt. It contains a @[`SystemMessage`] object (even if the agent was created with a string `system_prompt`).
+
+<Tabs>
+<Tab title="Decorator">
+
+```python
+from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
+from langchain.messages import SystemMessage
+from typing import Callable
+
+
+@wrap_model_call
+def add_context(
+    request: ModelRequest,
+    handler: Callable[[ModelRequest], ModelResponse],
+) -> ModelResponse:
+    new_content = list(request.system_message.content_blocks) + [
+        {"type": "text", "text": "Additional context."}
+    ]
+    new_system_message = SystemMessage(content=new_content)
+    return handler(request.override(system_message=new_system_message))
+```
+
+</Tab>
+
+<Tab title="Class">
+
+```python
+from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
+from langchain.messages import SystemMessage
+from typing import Callable
+
+
+class ContextMiddleware(AgentMiddleware):
+    def wrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        new_content = list(request.system_message.content_blocks) + [
+            {"type": "text", "text": "Additional context."}
+        ]
+        new_system_message = SystemMessage(content=new_content)
+        return handler(request.override(system_message=new_system_message))
+```
+
+</Tab>
+</Tabs>
+
+<Note>
+- `ModelRequest.system_message` is always a @[`SystemMessage`] object, even if the agent was created with `system_prompt="string"`
+- Use `SystemMessage.content_blocks` to access content as a list of blocks, regardless of whether the original content was a string or list
+- When modifying system messages, use `content_blocks` and append new blocks to preserve existing structure
+- You can pass @[`SystemMessage`] objects directly to `create_agent`'s `system_prompt` parameter for advanced use cases like cache control
+</Note>
+
+:::
+
+:::js
+
+Use the `systemMessage` field in `ModelRequest` to read and modify the system prompt. It contains a @[`SystemMessage`] object (even if the agent was created with a string @[`systemPrompt`]).
+
+```typescript
+import { createMiddleware, SystemMessage, createAgent } from "langchain";
+
+const addContextMiddleware = createMiddleware({
+  name: "AddContextMiddleware",
+  wrapModelCall: async (request, handler) => {
+    return handler({
+      ...request,
+      systemMessage: request.systemMessage.concat(`Additional context.`),
+    });
+  },
+});
+
+const agent = createAgent({
+  model: "gpt-4.1",
+  systemPrompt: "You are a helpful assistant.",
+  middleware: [addContextMiddleware],
+});
+```
+
+Use @[`SystemMessage.concat`] to preserve cache control metadata or structured content blocks created by other middleware.
+
+:::
+
 ### Dynamic model selection
 
 :::python
@@ -1088,7 +1180,6 @@ def dynamic_model(
     request: ModelRequest,
     handler: Callable[[ModelRequest], ModelResponse],
 ) -> ModelResponse:
-    # Use different model based on conversation length
     if len(request.messages) > 10:
         model = complex_model
     else:
@@ -1114,7 +1205,6 @@ class DynamicModelMiddleware(AgentMiddleware):
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
-        # Use different model based on conversation length
         if len(request.messages) > 10:
             model = complex_model
         else:
@@ -1143,6 +1233,97 @@ const dynamicModelMiddleware = createMiddleware({
     }
     return handler(modifiedRequest);
   },
+});
+```
+
+:::
+
+### Dynamically selecting tools
+
+Select relevant tools at runtime to improve performance and accuracy. This section covers filtering pre-registered tools. For registering tools that are discovered at runtime (e.g., from MCP servers), see [Runtime tool registration](/oss/langchain/agents#dynamic-tools).
+
+**Benefits:**
+- **Shorter prompts** - Reduce complexity by exposing only relevant tools
+- **Better accuracy** - Models choose correctly from fewer options
+- **Permission control** - Dynamically filter tools based on user access
+
+:::python
+
+<Tabs>
+<Tab title="Decorator">
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
+from typing import Callable
+
+
+@wrap_model_call
+def select_tools(
+    request: ModelRequest,
+    handler: Callable[[ModelRequest], ModelResponse],
+) -> ModelResponse:
+    """Middleware to select relevant tools based on state/context."""
+    relevant_tools = select_relevant_tools(request.state, request.runtime)
+    return handler(request.override(tools=relevant_tools))
+
+agent = create_agent(
+    model="gpt-4.1",
+    tools=all_tools,  # All available tools need to be registered upfront
+    middleware=[select_tools],
+)
+```
+
+</Tab>
+
+<Tab title="Class">
+
+```python
+from langchain.agents import create_agent
+from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
+from typing import Callable
+
+
+class ToolSelectorMiddleware(AgentMiddleware):
+    def wrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        """Middleware to select relevant tools based on state/context."""
+        relevant_tools = select_relevant_tools(request.state, request.runtime)
+        return handler(request.override(tools=relevant_tools))
+
+agent = create_agent(
+    model="gpt-4.1",
+    tools=all_tools,  # All available tools need to be registered upfront
+    middleware=[ToolSelectorMiddleware()],
+)
+```
+
+</Tab>
+</Tabs>
+
+:::
+
+:::js
+
+```typescript
+import { createAgent, createMiddleware } from "langchain";
+
+const toolSelectorMiddleware = createMiddleware({
+  name: "ToolSelector",
+  wrapModelCall: (request, handler) => {
+    const relevantTools = selectRelevantTools(request.state, request.runtime);
+    const modifiedRequest = { ...request, tools: relevantTools };
+    return handler(modifiedRequest);
+  },
+});
+
+const agent = createAgent({
+  model: "gpt-4.1",
+  tools: allTools,
+  middleware: [toolSelectorMiddleware],
 });
 ```
 
@@ -1236,160 +1417,11 @@ const toolMonitoringMiddleware = createMiddleware({
 
 :::
 
-### Dynamically selecting tools
+### Prompt caching (Anthropic)
 
-Select relevant tools at runtime to improve performance and accuracy. This section covers filtering pre-registered tools. For registering tools that are discovered at runtime (e.g., from MCP servers), see [Runtime tool registration](/oss/langchain/agents#dynamic-tools).
-
-**Benefits:**
-- **Shorter prompts** - Reduce complexity by exposing only relevant tools
-- **Better accuracy** - Models choose correctly from fewer options
-- **Permission control** - Dynamically filter tools based on user access
+When working with Anthropic models, use structured content blocks with cache control directives to cache large system prompts:
 
 :::python
-
-<Tabs>
-<Tab title="Decorator">
-
-```python
-from langchain.agents import create_agent
-from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
-from typing import Callable
-
-
-@wrap_model_call
-def select_tools(
-    request: ModelRequest,
-    handler: Callable[[ModelRequest], ModelResponse],
-) -> ModelResponse:
-    """Middleware to select relevant tools based on state/context."""
-    # Select a small, relevant subset of tools based on state/context
-    relevant_tools = select_relevant_tools(request.state, request.runtime)
-    return handler(request.override(tools=relevant_tools))
-
-agent = create_agent(
-    model="gpt-4.1",
-    tools=all_tools,  # All available tools need to be registered upfront
-    middleware=[select_tools],
-)
-```
-
-</Tab>
-
-<Tab title="Class">
-
-```python
-from langchain.agents import create_agent
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from typing import Callable
-
-
-class ToolSelectorMiddleware(AgentMiddleware):
-    def wrap_model_call(
-        self,
-        request: ModelRequest,
-        handler: Callable[[ModelRequest], ModelResponse],
-    ) -> ModelResponse:
-        """Middleware to select relevant tools based on state/context."""
-        # Select a small, relevant subset of tools based on state/context
-        relevant_tools = select_relevant_tools(request.state, request.runtime)
-        return handler(request.override(tools=relevant_tools))
-
-agent = create_agent(
-    model="gpt-4.1",
-    tools=all_tools,  # All available tools need to be registered upfront
-    middleware=[ToolSelectorMiddleware()],
-)
-```
-
-</Tab>
-</Tabs>
-
-:::
-
-:::js
-
-```typescript
-import { createAgent, createMiddleware } from "langchain";
-
-const toolSelectorMiddleware = createMiddleware({
-  name: "ToolSelector",
-  wrapModelCall: (request, handler) => {
-    // Select a small, relevant subset of tools based on state/context
-    const relevantTools = selectRelevantTools(request.state, request.runtime);
-    const modifiedRequest = { ...request, tools: relevantTools };
-    return handler(modifiedRequest);
-  },
-});
-
-const agent = createAgent({
-  model: "gpt-4.1",
-  tools: allTools,
-  middleware: [toolSelectorMiddleware],
-});
-```
-
-:::
-
-### Working with system messages
-
-:::python
-
-Modify system messages in middleware using the `system_message` field on `ModelRequest`. The `system_message` field contains a @[`SystemMessage`] object (even if the agent was created with a string `system_prompt`).
-
-**Example: Adding context to system message**
-
-<Tabs>
-<Tab title="Decorator">
-
-```python
-from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
-from langchain.messages import SystemMessage
-from typing import Callable
-
-
-@wrap_model_call
-def add_context(
-    request: ModelRequest,
-    handler: Callable[[ModelRequest], ModelResponse],
-) -> ModelResponse:
-    # Always work with content blocks
-    new_content = list(request.system_message.content_blocks) + [
-        {"type": "text", "text": "Additional context."}
-    ]
-    new_system_message = SystemMessage(content=new_content)
-    return handler(request.override(system_message=new_system_message))
-```
-
-</Tab>
-
-<Tab title="Class">
-
-```python
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from langchain.messages import SystemMessage
-from typing import Callable
-
-
-class ContextMiddleware(AgentMiddleware):
-    def wrap_model_call(
-        self,
-        request: ModelRequest,
-        handler: Callable[[ModelRequest], ModelResponse],
-    ) -> ModelResponse:
-        # Always work with content blocks
-        new_content = list(request.system_message.content_blocks) + [
-            {"type": "text", "text": "Additional context."}
-        ]
-        new_system_message = SystemMessage(content=new_content)
-        return handler(request.override(system_message=new_system_message))
-```
-
-</Tab>
-</Tabs>
-
-**Example: Working with cache control (Anthropic)**
-
-When working with Anthropic models, you can use structured content blocks with cache control directives to cache large system prompts:
 
 <Tabs>
 <Tab title="Decorator">
@@ -1405,12 +1437,10 @@ def add_cached_context(
     request: ModelRequest,
     handler: Callable[[ModelRequest], ModelResponse],
 ) -> ModelResponse:
-    # Always work with content blocks
     new_content = list(request.system_message.content_blocks) + [
         {
             "type": "text",
             "text": "Here is a large document to analyze:\n\n<document>...</document>",
-            # content up until this point is cached
             "cache_control": {"type": "ephemeral"}
         }
     ]
@@ -1435,12 +1465,11 @@ class CachedContextMiddleware(AgentMiddleware):
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
-        # Always work with content blocks
         new_content = list(request.system_message.content_blocks) + [
             {
                 "type": "text",
                 "text": "Here is a large document to analyze:\n\n<document>...</document>",
-                "cache_control": {"type": "ephemeral"}  # This content will be cached
+                "cache_control": {"type": "ephemeral"}
             }
         ]
 
@@ -1451,36 +1480,15 @@ class CachedContextMiddleware(AgentMiddleware):
 </Tab>
 </Tabs>
 
-**Notes:**
-- `ModelRequest.system_message` is always a @[`SystemMessage`] object, even if the agent was created with `system_prompt="string"`
-- Use `SystemMessage.content_blocks` to access content as a list of blocks, regardless of whether the original content was a string or list
-- When modifying system messages, use `content_blocks` and append new blocks to preserve existing structure
-- You can pass @[`SystemMessage`] objects directly to `create_agent`'s `system_prompt` parameter for advanced use cases like cache control
-
 :::
 
 :::js
-Modify system messages in middleware using the `systemMessage` field in `ModelRequest`. It contains a @[`SystemMessage`] object (even if the agent was created with a string @[`systemPrompt`]).
-
-**Example: Chaining middleware** - Different middleware can use different approaches:
 
 ```typescript
 import { createMiddleware, SystemMessage, createAgent } from "langchain";
 
-// Middleware 1: Uses systemMessage with simple concatenation
-const myMiddleware = createMiddleware({
-  name: "MyMiddleware",
-  wrapModelCall: async (request, handler) => {
-    return handler({
-      ...request,
-      systemMessage: request.systemMessage.concat(`Additional context.`),
-    });
-  },
-});
-
-// Middleware 2: Uses systemMessage with structured content (preserves structure)
-const myOtherMiddleware = createMiddleware({
-  name: "MyOtherMiddleware",
+const cachedContextMiddleware = createMiddleware({
+  name: "CachedContextMiddleware",
   wrapModelCall: async (request, handler) => {
     return handler({
       ...request,
@@ -1489,7 +1497,7 @@ const myOtherMiddleware = createMiddleware({
           content: [
             {
               type: "text",
-              text: " More additional context. This will be cached.",
+              text: "Here is a large document to analyze.",
               cache_control: { type: "ephemeral", ttl: "5m" },
             },
           ],
@@ -1502,22 +1510,7 @@ const myOtherMiddleware = createMiddleware({
 const agent = createAgent({
   model: "anthropic:claude-3-5-sonnet",
   systemPrompt: "You are a helpful assistant.",
-  middleware: [myMiddleware, myOtherMiddleware],
-});
-```
-
-The resulting system message will be:
-```typescript
-new SystemMessage({
-  content: [
-    { type: "text", text: "You are a helpful assistant." },
-    { type: "text", text: "Additional context." },
-    {
-        type: "text",
-        text: " More additional context. This will be cached.",
-        cache_control: { type: "ephemeral", ttl: "5m" },
-    },
-  ],
+  middleware: [cachedContextMiddleware],
 });
 ```
 
