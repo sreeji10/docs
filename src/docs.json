@@ -1012,7 +1012,7 @@
                       "pages": [
                         "oss/python/deepagents/quickstart",
                         "oss/python/deepagents/customization",
-                        "oss/python/deepagents/deployments",
+                        "oss/python/deepagents/going-to-production",
                         "oss/python/deepagents/comparison",
                         "oss/python/deepagents/changelog-py"
                       ]
@@ -1435,7 +1435,7 @@
                       "pages": [
                         "oss/javascript/deepagents/quickstart",
                         "oss/javascript/deepagents/customization",
-                        "oss/javascript/deepagents/deployments",
+                        "oss/javascript/deepagents/going-to-production",
                         "oss/javascript/deepagents/comparison",
                         "oss/javascript/deepagents/changelog-js"
                       ]
