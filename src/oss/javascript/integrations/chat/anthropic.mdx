@@ -304,17 +304,13 @@ AIMessage {
 
 ## Prompt caching
 
-<Warning>
-**Compatibility**: This feature is currently in beta.
-</Warning>
-
 Anthropic supports [caching parts of your prompt](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) in order to reduce costs for use-cases that require long context. You can cache tools and both entire messages and individual blocks.
 
-The initial request containing one or more blocks or tool definitions with a `"cache_control": { "type": "ephemeral" }` field will automatically cache that part of the prompt. This initial caching step will cost extra, but subsequent requests will be billed at a reduced rate. The cache has a lifetime of 5 minutes, but this is refreshed each time the cache is hit.
+The initial request containing one or more blocks or tool definitions with a `"cache_control": { "type": "ephemeral" }` field will automatically cache that part of the prompt. This initial caching step will cost extra, but subsequent requests will be billed at a reduced rate. The cache has a lifetime of 5 minutes, but this is refreshed each time the cache is hit. For longer caching, specify `"ttl": "1h"` in the `cache_control` field.
 
-There is also currently a minimum cacheable prompt length, which varies according to model. For more information, see [prompt caching details](https://platform.claude.com/docs/en/build-with-claude/prompt-caching#structuring-your-prompt).
+There is a minimum cacheable prompt length, which varies according to model. For more information, see [prompt caching details](https://platform.claude.com/docs/en/build-with-claude/prompt-caching#cache-limitations).
 
-This currently requires you to initialize your model with a beta header. Here's an example of caching part of a system message that contains the LangChain [conceptual docs](/oss/concepts/):
+Here's an example of caching part of a system message that contains the LangChain [conceptual docs](/oss/concepts/):
 
 ```typescript
 let CACHED_TEXT = "...";
@@ -595,11 +591,6 @@ import { ChatAnthropic } from "@langchain/anthropic";
 
 const modelWithCaching = new ChatAnthropic({
   model: "claude-haiku-4-5-20251001",
-  clientOptions: {
-    defaultHeaders: {
-      "anthropic-beta": "prompt-caching-2024-07-31",
-    },
-  },
 });
 
 const LONG_TEXT = `You are a pirate. Always respond in pirate dialect.
@@ -705,7 +696,7 @@ import { AnthropicVertex } from "@anthropic-ai/vertex-sdk";
 const customClient = new AnthropicVertex();
 
 const modelWithCustomClient = new ChatAnthropic({
-  modelName: "claude-3-sonnet@20240229",
+  modelName: "claude-sonnet-4-6",
   maxRetries: 0,
   createClient: () => customClient,
 });
