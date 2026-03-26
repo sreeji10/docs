@@ -471,6 +471,7 @@ class PolicyWrapper(BackendProtocol):
 
     def ls(self, path: str) -> LsResult:
         return self.inner.ls(path)
+
     def read(self, file_path: str, offset: int = 0, limit: int = 2000) -> ReadResult:
         return self.inner.read(file_path, offset=offset, limit=limit)
     def grep(self, pattern: str, path: str | None = None, glob: str | None = None) -> GrepResult:
