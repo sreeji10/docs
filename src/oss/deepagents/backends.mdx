@@ -271,7 +271,7 @@ Design guidelines:
 
 :::js
 - Use `ls` and `glob` as the method names.
-- All query methods (`ls`, `read`, `readRaw`, `grep`, `glob`) must return structured Result objects (e.g., `LsResult`, `ReadResult`) with an optional `error` field — do not throw.
+- All query methods (`ls`, `read`, `readRaw`, `grep`, `glob`) must return structured Result objects (e.g., `LsResult`, `ReadResult`) with an optional `error` field.
 - Support binary files in `read()` by returning `Uint8Array` content with the appropriate `mimeType`.
 :::
 
