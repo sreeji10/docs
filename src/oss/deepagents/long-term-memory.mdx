@@ -34,6 +34,7 @@ const agent = createDeepAgent({});
 To persist information across conversations — user preferences, learned instructions, project context — use a `CompositeBackend` that routes `/memories/` to a `StoreBackend`. The agent's scratch files stay ephemeral while anything written to `/memories/` persists in a LangGraph [Store](/langsmith/custom-store).
 
 ### Setup
+You can extend Deep Agents with **long-term memory** by using a @[`CompositeBackend`] that routes specific paths to persistent storage. This enables hybrid storage where some files persist across threads while others remain ephemeral.
 
 ```mermaid
 graph LR
@@ -55,6 +56,10 @@ graph LR
     class Store,State process
     class Persist,Ephemeral output
 ```
+
+## Setup
+
+Configure long-term memory by using a `CompositeBackend` that routes the `/memories/` path to a @[`StoreBackend`]:
 
 :::python
 ```python
