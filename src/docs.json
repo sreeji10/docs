@@ -1327,6 +1327,7 @@
                       "icon": "book",
                       "pages": [
                         "oss/python/concepts/products",
+                        "oss/python/concepts/providers-and-models",
                         "oss/python/langchain/component-architecture",
                         "oss/python/concepts/memory",
                         "oss/python/concepts/context",
@@ -1789,6 +1790,7 @@
                       "icon": "book",
                       "pages": [
                         "oss/javascript/concepts/products",
+                        "oss/javascript/concepts/providers-and-models",
                         "oss/javascript/langchain/component-architecture",
                         "oss/javascript/concepts/memory",
                         "oss/javascript/concepts/context",
