@@ -110,11 +110,12 @@ The Deep Agents CLI has the following built-in capabilities:
     </Step>
 
     <Step title="Enable tracing (optional)" icon="chart-dots">
-        See agent operations, tool calls, and decisions in [LangSmith](#tracing-with-langsmith):
+        Add tracing keys to `~/.deepagents/.env` to see agent operations, tool calls, and decisions in [LangSmith](#tracing-with-langsmith):
 
-        ```bash
-        export LANGCHAIN_TRACING=true
-        export LANGCHAIN_API_KEY="your-api-key"
+        ```bash title="~/.deepagents/.env"
+        LANGSMITH_TRACING=true
+        LANGSMITH_API_KEY=lsv2_...
+        LANGSMITH_PROJECT=optional-project-name  # Specify a project name or default to "deepagents-cli"
         ```
     </Step>
 </Steps>
@@ -691,28 +692,43 @@ For a deeper look at sandbox architecture, integration patterns, and security be
 
 ## Tracing with LangSmith
 
-Enable LangSmith tracing to see agent operations in a LangSmith project:
+Enable [LangSmith](https://smith.langchain.com/) tracing to see agent operations, tool calls, and decisions in a LangSmith project.
 
-1. Enable LangSmith tracing:
+Add your tracing keys to `~/.deepagents/.env` so tracing is enabled in every session without per-shell exports:
 
-   ```bash
-   export LANGCHAIN_TRACING=true
-   export LANGCHAIN_API_KEY="your-api-key"
-   ```
+```bash title="~/.deepagents/.env"
+LANGSMITH_TRACING=true
+LANGSMITH_API_KEY=lsv2_...
+LANGSMITH_PROJECT=optional-project-name  # Specify a project name or default to "deepagents-cli"
+```
 
-1. Configure agent tracing for deep agent operations such as tool calls and agent decisions:
+To override for a specific project, add the same keys to a `.env` in the project directory. See [environment variables](/oss/deepagents/cli/configuration#environment-variables) for the full loading order.
 
-   ```bash
-   export DEEPAGENTS_LANGSMITH_PROJECT="my-deep-agent-execution"
-   ```
+You can also set these as shell environment variables if you prefer. Shell exports always take precedence over `.env` values, so this is a good option for temporary overrides or testing:
 
-1. If you are building a LangChain app with Deep Agents, and want to separate agent traces from your app's traces, also configure `LANGSMITH_PROJECT`:
+```bash
+export LANGSMITH_TRACING=false
+```
 
-   ```bash
-   export LANGSMITH_PROJECT="my-app-calls-to-langchain"
-   ```
+<Accordion title="Separate agent traces from app traces">
+    When invoking the CLI programmatically from a LangChain application (e.g., as a subprocess in [non-interactive mode](/oss/deepagents/cli/non-interactive)), both your app and the CLI produce LangSmith traces. By default, these all land in the same project.
 
-When configured, the CLI displays:
+    To send CLI traces to a dedicated project, set `DEEPAGENTS_LANGSMITH_PROJECT`:
+
+    ```bash title="~/.deepagents/.env"
+    DEEPAGENTS_LANGSMITH_PROJECT=my-deep-agent-execution
+    ```
+
+    Then configure `LANGSMITH_PROJECT` for your parent application's traces:
+
+    ```bash title="~/.deepagents/.env"
+    LANGSMITH_PROJECT=my-app-traces
+    ```
+
+    This keeps your app-level observability clean while still capturing the agent's internal execution in a separate project.
+</Accordion>
+
+When configured, the CLI displays a status line with a link to the LangSmith project. In supported terminals, click the link to open it directly. You can also use `/trace` to print the URL and open it in your browser.
 
 ```sh
 ✓ LangSmith tracing: 'my-project'
