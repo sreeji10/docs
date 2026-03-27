@@ -11,6 +11,31 @@ rss: true
 [Self-hosted LangSmith](/langsmith/self-hosted) is an add-on to the Enterprise plan designed for our largest, most security-conscious customers. For more details, refer to [Pricing](https://www.langchain.com/pricing). [Contact our sales team](https://www.langchain.com/contact-sales) if you want to get a license key to trial LangSmith in your environment.
 
 <Update label="2026-03-27" tags={["self-hosted"]}>
+## langsmith-0.13.35
+
+- Added the ability for users to find account labels for first-class providers, enhancing account management.
+- Fixed an issue where switching alerts did not switch the corresponding chart, improving data visualization.
+- Fixed a KeyError for experiments with attachments, ensuring stability in experiment management.
+- Added a dismiss button to the agentify banner in the Fleet interface for improved usability.
+- Enhanced responsiveness in the run details header and trace comparisons for a better user experience.
+- Added a truncate property to feedback chips list, making it responsive to container width.
+- Fixed a race condition in archive check within the backend, enhancing system reliability.
+- Patched multiple medium and high-security alerts, strengthening system security.
+- Updated model cards in the frontend for better model information display.
+- Improved prompt picker loading when opening the playground from the experiments table.
+- Added new onboarding operations to audit logs for improved change tracking.
+- Introduced Ashby integration in the Agent Builder, expanding toolset support.
+- Enhanced loading speed by parallelizing graph loading and eliminating redundant MCP fetches in the Agent Builder.
+- Added a Dynatrace webhook integration for alerts, expanding monitoring options.
+- Added feedback banner for experiment sidebar redesign, incorporating user feedback.
+- Added example attachments to experiment detail panes for richer experiment context.
+- Integrated the arcade with real OAuth flow in the Agent Builder, enhancing authentication processes.
+- Improved the fetching of full run data in the new experiment detail pane, ensuring complete data visibility.
+
+**Download the Helm chart:** [`langsmith-0.13.35.tgz`](https://github.com/langchain-ai/helm/releases/download/langsmith-0.13.35/langsmith-0.13.35.tgz)
+</Update>
+
+<Update label="2026-03-27" tags={["self-hosted"]}>
 ## langsmith-0.13.34
 
 - Added ability for users to find account labels for first-class providers, enhancing navigation.
