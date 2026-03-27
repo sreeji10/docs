@@ -123,7 +123,7 @@ Each command group targets a specific LangSmith resource. Most commands support 
 
 ### List projects
 
-Returns up to 20 projects by default, sorted by most recent activity. Lists tracing projects only — use `experiment list` to list evaluation experiments.
+Returns up to 20 projects by default, sorted by most recent activity. Lists tracing projects only. (Use [`experiment list`](#view-experiments) to list evaluation experiments.)
 
 ```bash
 langsmith project list
@@ -148,7 +148,7 @@ langsmith trace export ./traces --project my-app --limit 20 --full
 
 ### Query runs
 
-Defaults to 50 results (most other commands default to 20). The same 7-day time window applies — use `--since` or `--last-n-minutes` to override.
+Defaults to 50 results (most other commands default to 20). The same 7-day time window applies. Use `--since` or `--last-n-minutes` to override.
 
 ```bash
 langsmith run list --project my-app --run-type llm
@@ -212,7 +212,7 @@ langsmith evaluator delete accuracy --yes
 
 ### View experiments
 
-`experiment list` shows evaluation experiments, not tracing projects. Use `project list` to list tracing projects.
+`experiment list` shows evaluation experiments, not tracing projects. (Use [`project list`](#list-projects) to list tracing projects.)
 
 ```bash
 langsmith experiment list
