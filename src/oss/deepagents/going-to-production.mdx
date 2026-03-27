@@ -14,14 +14,9 @@ In production, there are a few primitives that determine how information is shar
 - **User**: someone interacting with your agent. Memory and files can be private to a user or shared across users. Identity and authorization comes from your [auth layer](/langsmith/auth).
 - **Assistant**: a configured agent instance. Memory and files can be tied to one assistant or shared across all of them.
 
-### Multi-tenancy and authentication
-
-When your agent serves multiple users, you need to verify who each user is and control what they can access. [LangSmith Deployments](/langsmith/deployment) supports [custom authentication](/langsmith/custom-auth) to establish user identity and [auth handlers](/langsmith/auth) to control access to threads and assistants. See [Agent Auth](/langsmith/agent-auth) to pass end-user credentials through to the agent for authenticated calls on the user's behalf.
-
-How you scope [memory](#scoping) and [execution environments](#execution-environment) determines what information is shared between users. See the sections below for details.
-
 This page covers:
 - **[LangSmith Deployments](#langsmith-deployments)**: managed infrastructure with auth, webhooks, and cron
+- **[Multi-tenancy and authentication](#multi-tenancy-and-authentication)**: identity, access control, and scoping
 - **[Memory](#memory)**: persist information across conversations
 - **[Execution environment](#execution-environment)**: file storage and code execution
 - **[Guardrails](#guardrails)**: rate limiting, error handling, and data privacy
@@ -58,6 +53,12 @@ All code snippets on this page use the following `langgraph.json` unless otherwi
 }
 ```
 :::
+
+## Multi-tenancy and authentication
+
+When your agent serves multiple users, you need to verify who each user is and control what they can access. [LangSmith Deployments](/langsmith/deployment) supports [custom authentication](/langsmith/custom-auth) to establish user identity and [auth handlers](/langsmith/auth) to control access to threads and assistants. See [Agent Auth](/langsmith/agent-auth) to pass end-user credentials through to the agent for authenticated calls on the user's behalf.
+
+How you scope [memory](#scoping) and [execution environments](#execution-environment) determines what information is shared between users. See the sections below for details.
 
 ## Memory
 
