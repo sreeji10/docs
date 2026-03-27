@@ -54,6 +54,16 @@ All code snippets on this page use the following `langgraph.json` unless otherwi
 ```
 :::
 
+`langgraph.json` is the configuration file that tells the LangGraph platform how to build and run your application. It lives at the root of your project and is required for both local development (with `langgraph dev`) and production deployment. The key fields are:
+
+| Field | Description |
+| --- | --- |
+| `dependencies` | Packages to install. `["."]` installs the current directory as a package (reads from `requirements.txt`, `pyproject.toml`, or `package.json`). |
+| `graphs` | Maps graph IDs to their code locations. Each entry is `"<id>": "./<file>:<variable>"`, where `<id>` is the name you use to invoke the graph via the API, and `<variable>` is the compiled graph or constructor function exported from `<file>`. |
+| `env` | Path to a `.env` file with environment variables (API keys, secrets). These are set at build time and available at runtime. |
+
+For the full set of configuration options (custom Docker steps, store indexing, auth handlers, and more), see [application structure](/oss/langgraph/application-structure).
+
 ## Multi-tenancy
 
 When your agent serves multiple users, you need to verify who each user is and control what they can access. [LangSmith Deployments](/langsmith/deployment) supports [custom authentication](/langsmith/custom-auth) to establish user identity and [auth handlers](/langsmith/auth) to control access to threads and assistants. See [Agent Auth](/langsmith/agent-auth) to pass end-user credentials through to the agent for authenticated calls on the user's behalf.
@@ -72,10 +82,10 @@ The examples below are based on an organization running two assistants: an email
 
 | Scope | Namespace | Use case | Example |
 | --- | --- | --- | --- |
-| Private | `(assistant_id, user_id)` | Per-user preferences within one assistant | Personal email writing preferences |
-| Assistant | `(assistant_id)` | Shared instructions for one assistant | "Always use formal tone" for the email assistant |
-| User | `(user_id)` | Global user profile across all assistants | Name, timezone, communication style |
-| Organization | `()` | Read-only policies for all users and assistants | Compliance rules, brand guidelines |
+| Private | `(assistant_id, user_id)` | Per-user preferences within one assistant | "Sign my emails 'Best, Alex'" for the email assistant only |
+| Assistant | `(assistant_id)` | Shared instructions for one assistant | "Cap posts at 280 characters" for the social media assistant |
+| User | `(user_id)` | Global user profile across all assistants | User's preferred language is Spanish |
+| Organization | `()` | Read-only policies for all users and assistants | "Never disclose internal pricing" |
 
 <Warning>
 Shared memory (assistant, user, or organization scope) is a vector for prompt injection. If one user can write to memory that another user's conversation reads, a malicious user could inject instructions into that shared state. Enforce read-only access where appropriate. For example, make organization-wide policies writable only through application code, not by the agent itself.
@@ -333,12 +343,12 @@ from langgraph.config import get_config
 client = Daytona()
 
 
-def make_backend(rt):
+async def make_backend(rt):
     thread_id = get_config()["configurable"]["thread_id"]
     try:
-        sandbox = client.find_one(labels={"thread_id": thread_id})
+        sandbox = await client.find_one(labels={"thread_id": thread_id})
     except Exception:
-        sandbox = client.create(
+        sandbox = await client.create(
             CreateSandboxFromSnapshotParams(
                 labels={"thread_id": thread_id},
                 auto_delete_interval=3600,  # TTL: clean up when idle
@@ -394,12 +404,12 @@ from langgraph.config import get_config
 client = Daytona()
 
 
-def make_backend(rt):
+async def make_backend(rt):
     assistant_id = get_config()["metadata"]["assistant_id"]
     try:
-        sandbox = client.find_one(labels={"assistant_id": assistant_id})
+        sandbox = await client.find_one(labels={"assistant_id": assistant_id})
     except Exception:
-        sandbox = client.create(
+        sandbox = await client.create(
             CreateSandboxFromSnapshotParams(labels={"assistant_id": assistant_id})
         )
     return DaytonaSandbox(sandbox=sandbox)
@@ -618,30 +628,31 @@ class SandboxSyncMiddleware(AgentMiddleware):
         super().__init__()
         self.backend = backend
 
-    def before_agent(self, state: AgentState, runtime: Runtime) -> None:
+    async def before_agent(self, state: AgentState, runtime: Runtime) -> None:
         """Upload skill scripts and memories into the sandbox."""
         user_id = runtime.context.user_id
         store = runtime.store
         files = []
-        for item in store.search(("skills", user_id)):
+        for item in await store.asearch(("skills", user_id)):
             name = _safe_filename(item.key)
             files.append((f"/skills/{name}", item.value["content"].encode()))
-        for item in store.search(("memories", user_id)):
+        for item in await store.asearch(("memories", user_id)):
             name = _safe_filename(item.key)
             files.append((f"/memories/{name}", item.value["content"].encode()))
         if files:
-            self.backend.upload_files(files)
+            await self.backend.upload_files(files)
 
-    def after_agent(self, state: AgentState, runtime: Runtime) -> None:
+    async def after_agent(self, state: AgentState, runtime: Runtime) -> None:
         """Sync updated memories back to the store."""
         user_id = runtime.context.user_id
         store = runtime.store
-        results = self.backend.download_files(
-            [f"/memories/{item.key}" for item in store.search(("memories", user_id))]
+        items = await store.asearch(("memories", user_id))
+        results = await self.backend.download_files(
+            [f"/memories/{item.key}" for item in items]
         )
         for result in results:
             if result.content is not None:
-                store.put(
+                await store.aput(
                     ("memories", user_id),
                     result.path.split("/")[-1],
                     {"content": result.content.decode()},
