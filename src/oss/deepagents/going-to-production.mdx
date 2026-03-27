@@ -566,40 +566,35 @@ from langgraph.runtime import Runtime
 
 
 class SandboxSyncMiddleware(AgentMiddleware):
-    """Sync skills and memories between the Store and the sandbox."""
+    """Sync skills and memories between the store and the sandbox."""
 
-    def __init__(
-        self,
-        backend,
-        skills_namespace: tuple[str, ...],
-        memories_namespace: tuple[str, ...],
-    ):
+    def __init__(self, backend):
         super().__init__()
         self.backend = backend
-        self.skills_namespace = skills_namespace
-        self.memories_namespace = memories_namespace
 
     def before_agent(self, state: AgentState, runtime: Runtime) -> None:
-        """Upload skills and memories into the sandbox."""
+        """Upload skill scripts and memories into the sandbox."""
+        user_id = runtime.context.user_id
         store = runtime.store
         files = []
-        for item in store.search(self.skills_namespace):
+        for item in store.search(("skills", user_id)):
             files.append((f"/skills/{item.key}", item.value["content"].encode()))
-        for item in store.search(self.memories_namespace):
+        for item in store.search(("memories", user_id)):
             files.append((f"/memories/{item.key}", item.value["content"].encode()))
         if files:
             self.backend.upload_files(files)
 
     def after_agent(self, state: AgentState, runtime: Runtime) -> None:
-        """Sync updated memories back to the Store."""
+        """Sync updated memories back to the store."""
+        user_id = runtime.context.user_id
         store = runtime.store
         results = self.backend.download_files(
-            [f"/memories/{item.key}" for item in store.search(self.memories_namespace)]
+            [f"/memories/{item.key}" for item in store.search(("memories", user_id))]
         )
         for result in results:
             if result.content is not None:
                 store.put(
-                    self.memories_namespace,
+                    ("memories", user_id),
                     result.path.split("/")[-1],
                     {"content": result.content.decode()},
                 )
@@ -608,22 +603,20 @@ class SandboxSyncMiddleware(AgentMiddleware):
 backend = CompositeBackend(
     default=DaytonaSandbox(sandbox=sandbox),
     routes={
+        "/skills/": StoreBackend(
+            rt,
+            namespace=lambda ctx: ("skills", ctx.runtime.context.user_id),
+        ),
         "/memories/": StoreBackend(
             rt,
-            namespace=lambda ctx: (ctx.runtime.context.user_id,),
+            namespace=lambda ctx: ("memories", ctx.runtime.context.user_id),
         ),
     },
 )
 
 agent = create_deep_agent(
     backend=backend,
-    middleware=[
-        SandboxSyncMiddleware(
-            backend=backend,
-            skills_namespace=("user_123", "skills"),
-            memories_namespace=("user_123", "memories"),
-        ),
-    ],
+    middleware=[SandboxSyncMiddleware(backend)],
 )
 ```
 :::
@@ -632,23 +625,21 @@ agent = create_deep_agent(
 ```typescript src/agent.ts
 import { createMiddleware } from "langchain";
 import { createDeepAgent, CompositeBackend, StoreBackend } from "deepagents";
+import { DaytonaSandbox } from "@langchain/daytona";
 
-const createSandboxSyncMiddleware = (
-  backend: CompositeBackend,
-  skillsNamespace: string[],
-  memoriesNamespace: string[],
-) => {
+const createSandboxSyncMiddleware = (backend: CompositeBackend) => {
   return createMiddleware({
     name: "SandboxSyncMiddleware",
     beforeAgent: async (state, runtime) => {
-      // Upload skills and memories into the sandbox
+      // Upload skill scripts and memories into the sandbox
+      const userId = runtime.context.userId;
       const store = runtime.store;
       const encoder = new TextEncoder();
       const files: [string, Uint8Array][] = [];
-      for (const item of await store.search(skillsNamespace)) {
+      for (const item of await store.search(["skills", userId])) {
         files.push([`/skills/${item.key}`, encoder.encode(item.value.content)]);
       }
-      for (const item of await store.search(memoriesNamespace)) {
+      for (const item of await store.search(["memories", userId])) {
         files.push([`/memories/${item.key}`, encoder.encode(item.value.content)]);
       }
       if (files.length > 0) {
@@ -656,9 +647,10 @@ const createSandboxSyncMiddleware = (
       }
     },
     afterAgent: async (state, runtime) => {
-      // Sync updated memories back to the Store
+      // Sync updated memories back to the store
+      const userId = runtime.context.userId;
       const store = runtime.store;
-      const items = await store.search(memoriesNamespace);
+      const items = await store.search(["memories", userId]);
       const results = await backend.downloadFiles(
         items.map((item) => `/memories/${item.key}`),
       );
@@ -666,7 +658,7 @@ const createSandboxSyncMiddleware = (
       for (const result of results) {
         if (result.content) {
           await store.put(
-            memoriesNamespace,
+            ["memories", userId],
             result.path.split("/").pop()!,
             { content: decoder.decode(result.content) },
           );
@@ -679,21 +671,18 @@ const createSandboxSyncMiddleware = (
 const backend = new CompositeBackend(
   await DaytonaSandbox.fromId(sandbox.id),
   {
+    "/skills/": new StoreBackend(rt, {
+      namespace: (ctx) => ["skills", ctx.runtime.context.userId],
+    }),
     "/memories/": new StoreBackend(rt, {
-      namespace: (ctx) => [ctx.runtime.context.userId],
+      namespace: (ctx) => ["memories", ctx.runtime.context.userId],
     }),
   },
 );
 
 const agent = createDeepAgent({
   backend,
-  middleware: [
-    createSandboxSyncMiddleware(
-      backend,
-      ["user_123", "skills"],
-      ["user_123", "memories"],
-    ),
-  ],
+  middleware: [createSandboxSyncMiddleware(backend)],
 });
 
 export { agent };
