@@ -227,7 +227,10 @@ For the full namespace factory API, see [namespace factories](/oss/deepagents/ba
 
 ## Execution environment
 
-Locally, agents can read and write files on disk and run shell commands directly. In production, you need to think about isolation and persistence.
+Locally, agents can read and write files on disk and run shell commands directly. In production, you need to think about isolation and persistence. The right setup depends on whether your agent needs to execute code:
+
+- **Filesystem backends** are enough if your agent only reads and writes files. Choose a backend that matches your persistence needs — ephemeral scratch space, persistent storage, or a mix of both.
+- **Sandboxes** add an isolated container with an `execute` tool for running shell commands. Use a sandbox if your agent needs to run code, install packages, or do anything beyond file I/O.
 
 ### Filesystem
 
@@ -241,7 +244,7 @@ For the full list of backends and how to build custom ones, see [backends](/oss/
 
 ### Sandboxes
 
-Agents that run shell commands or install packages need an isolated execution environment. [Sandboxes](/oss/deepagents/sandboxes) provide both a filesystem and an `execute` tool for running shell commands inside an isolated container. This isolation also protects your host: if the agent's code exhausts memory or crashes, only the sandbox is affected — your server keeps running.
+If your agent needs to run code — not just read and write files — use a [sandbox](/oss/deepagents/sandboxes). Sandboxes provide both a filesystem and an `execute` tool for running shell commands, all inside an isolated container. This isolation also protects your host: if the agent's code exhausts memory or crashes, only the sandbox is affected — your server keeps running.
 
 #### Lifecycle
 
@@ -553,7 +556,7 @@ Sandboxes are isolated containers — your application code can't directly acces
 For provider-specific file transfer examples, see [working with files](/oss/deepagents/sandboxes#working-with-files). For provider setup, security, and lifecycle patterns, see the full [sandboxes guide](/oss/deepagents/sandboxes).
 
 <Accordion title="Example: syncing skills and memories with custom middleware">
-  [Skills](/oss/deepagents/skills) and [memories](/oss/deepagents/long-term-memory) stored in the [Store](/langsmith/custom-store) need to be physically present in the sandbox for `execute()`. Use [custom middleware](/oss/langchain/middleware/custom) with `before_agent` and `after_agent` hooks to sync them across the boundary:
+  [Skill](/oss/deepagents/skills) scripts that the agent needs to execute must be uploaded into the sandbox before the agent runs. You may also want to sync [memories](/oss/deepagents/long-term-memory) so the agent can read and update them inside the container. Use [custom middleware](/oss/langchain/middleware/custom) with `before_agent` and `after_agent` hooks to move files across the sandbox boundary:
 
 :::python
 ```python agent.py
