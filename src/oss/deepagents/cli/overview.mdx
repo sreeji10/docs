@@ -66,11 +66,15 @@ The Deep Agents CLI has the following built-in capabilities:
 
 <Steps>
     <Step title="Set model credentials" icon="key">
-        Export your provider's API key as an environment variable. For example:
+        Export your provider's API key as an environment variable or add it to `~/.deepagents/.env`:
 
         ```bash
         export OPENAI_API_KEY="your-api-key"
         ```
+
+        <Tip>
+            Store keys in `~/.deepagents/.env` so they're available in every project without per-shell exports. See [environment variables](/oss/deepagents/cli/configuration#environment-variables).
+        </Tip>
 
         The CLI works with [any LLM that supports tool calling](/oss/deepagents/cli/providers) — OpenAI, Anthropic, Google, Ollama, and many more. See [Providers](#providers) for setup details.
     </Step>
@@ -285,6 +289,7 @@ The CLI stores all configuration under `~/.deepagents/`. Within that directory, 
 | Path | Purpose |
 |------|---------|
 | `~/.deepagents/config.toml` | Model defaults, provider settings, constructor params, profile overrides, themes, update settings, MCP trust store |
+| `~/.deepagents/.env` | Global API keys and secrets. See [configuration](/oss/deepagents/cli/configuration#environment-variables) |
 | `~/.deepagents/hooks.json` | Lifecycle event hooks (session start/end, task complete, etc.) |
 | `~/.deepagents/<agent_name>/` | Per-agent memory, skills, and conversation threads |
 | `.deepagents/` (project root) | Project-specific memory and skills, loaded when running inside a git repo |

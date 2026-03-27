@@ -9,8 +9,39 @@ The CLI stores its configuration in the `~/.deepagents/` directory. The main con
 | File | Format | Purpose |
 |------|--------|---------|
 | `config.toml` | [TOML](https://toml.io/) | Model defaults, provider settings, constructor params, profile overrides, themes, update settings, MCP trust store |
+| `.env` | Dotenv | Global API keys and secrets |
 | `hooks.json` | JSON | External tool subscriptions to CLI lifecycle events |
-| `.mcp.json` | JSON | MCP server definitions (also auto-discovered from project directories) |
+| `.mcp.json` | JSON | Global MCP server definitions |
+
+## Environment variables
+
+The CLI loads environment variables from dotenv files so you don't need to `export` API keys in your shell profile or duplicate `.env` files across projects.
+
+### Loading order and precedence
+
+Two `.env` files are loaded at startup:
+
+1. **Project `.env`** — the `.env` file in your current working directory (if present)
+2. **Global `~/.deepagents/.env`** — a single shared file that acts as a fallback for all projects
+
+Precedence at startup: **shell environment > project `.env` > global `.env`**. Values already set in the shell are never overwritten. Project-level values always take priority over the global file.
+
+On `/reload`, project `.env` is re-read with override semantics (it can update shell vars set since startup), but the global file still loads as a fallback.
+
+### Example
+
+Store API keys once in `~/.deepagents/.env`:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+LANGCHAIN_API_KEY=lsv2_...
+TAVILY_API_KEY=tvly-...
+```
+
+Then override per-project where needed by placing a `.env` in the project directory.
+
+---
 
 ## Config file
 
