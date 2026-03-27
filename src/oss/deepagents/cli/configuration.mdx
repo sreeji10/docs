@@ -8,7 +8,7 @@ The CLI stores its configuration in the `~/.deepagents/` directory. The main con
 
 | File | Format | Purpose |
 |------|--------|---------|
-| `config.toml` | [TOML](https://toml.io/) | Model defaults, provider settings, constructor params, profile overrides, MCP trust store |
+| `config.toml` | [TOML](https://toml.io/) | Model defaults, provider settings, constructor params, profile overrides, themes, update settings, MCP trust store |
 | `hooks.json` | JSON | External tool subscriptions to CLI lifecycle events |
 | `.mcp.json` | JSON | MCP server definitions (also auto-discovered from project directories) |
 
@@ -315,6 +315,80 @@ If you store shared skill assets in a non-standard location and use symlinks fro
 </AccordionGroup>
 
 When the environment variable is set, it takes precedence over the config file value. Paths support `~` expansion. Changes take effect on `/reload`.
+
+---
+
+## Themes
+
+Use `/theme` to open an interactive theme selector. Navigate the list to preview themes in real-time, press `Enter` to persist your choice to `config.toml`.
+
+The CLI ships with many built-in themes. The selected theme is persisted under `[ui]`:
+
+```toml
+[ui]
+theme = "langchain-dark"
+```
+
+### User-defined themes
+
+Define custom themes under `[themes.<name>]` sections in `config.toml`. Each section requires `label` (str). `dark` (bool) defaults to `false` if omitted — set to `true` for dark themes. All color fields are optional — omitted fields fall back to the built-in dark or light palette based on the `dark` flag.
+
+```toml
+[themes.my-solarized]
+label = "My Solarized"
+dark = true
+primary = "#268BD2"
+warning = "#B58900"
+
+# Theme names with spaces require TOML quoting
+[themes."ocean breeze"]
+label = "Ocean Breeze"
+primary = "#0077B6"
+background = "#CAF0F8"
+```
+
+User-defined themes appear alongside built-in themes in the `/theme` selector.
+
+### Override built-in theme colors
+
+To tweak a built-in theme's colors without creating a new theme, use a `[themes.<builtin-name>]` section. Only color fields are read — `label` and `dark` are inherited from the built-in:
+
+```toml
+[themes.langchain]
+primary = "#FF5500"
+```
+
+Omitted color fields retain the existing built-in values.
+
+Changes to `[themes.*]` sections take effect on `/reload`.
+
+---
+
+## Auto-update
+
+The CLI can automatically check for and install updates.
+
+<AccordionGroup>
+    <Accordion title="Config file">
+    ```toml
+    [update]
+    auto_update = true
+    ```
+    </Accordion>
+    <Accordion title="Environment variable">
+    ```bash
+    export DEEPAGENTS_AUTO_UPDATE=1
+    ```
+    </Accordion>
+</AccordionGroup>
+
+When enabled, the CLI checks PyPI for a newer version at session start and automatically upgrades using the detected install method (uv, Homebrew, or pip). When disabled (default), the CLI shows an update hint with the appropriate install command instead.
+
+You can also check for and install updates manually at any time with the `/update` slash command, which bypasses the cache and reports success or failure inline.
+
+After an upgrade, the CLI shows a "what's new" banner on the next launch with a link to the changelog.
+
+At session exit, if a newer version was detected during the session, an update banner is displayed as a reminder.
 
 ---
 

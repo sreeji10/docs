@@ -149,6 +149,8 @@ The agent will use its built-in tools, skills, and memory to help you with tasks
         - `/threads` - Browse and resume previous conversation threads
         - `/reload` - Refresh runtime configuration (API keys, `.env` changes, shell allow-list) and re-discover skills without restarting. Conversation state is preserved
         - `/skill:<name> [args]` - Directly invoke a skill by name. The skill's `SKILL.md` instructions are injected into the prompt along with any arguments you provide
+        - `/theme` - Open the interactive theme selector to switch color themes. Built-in themes are available plus any [user-defined themes](/oss/deepagents/cli/configuration#themes).
+        - `/update` - Check for and install CLI updates inline. Detects your install method (uv, Homebrew, pip) and runs the appropriate upgrade command
         - `/trace` - Open the current thread in LangSmith (requires `LANGSMITH_API_KEY`)
         - `/editor` - Open the current prompt in your external editor (`$VISUAL` / `$EDITOR`). See [External editor](/oss/deepagents/cli/configuration#external-editor)
         - `/changelog` - Open the CLI changelog in your browser
@@ -282,14 +284,14 @@ The CLI stores all configuration under `~/.deepagents/`. Within that directory, 
 
 | Path | Purpose |
 |------|---------|
-| `~/.deepagents/config.toml` | Model defaults, provider settings, constructor params, profile overrides, MCP trust store |
+| `~/.deepagents/config.toml` | Model defaults, provider settings, constructor params, profile overrides, themes, update settings, MCP trust store |
 | `~/.deepagents/hooks.json` | Lifecycle event hooks (session start/end, task complete, etc.) |
 | `~/.deepagents/<agent_name>/` | Per-agent memory, skills, and conversation threads |
 | `.deepagents/` (project root) | Project-specific memory and skills, loaded when running inside a git repo |
 
 ```bash
 # List all configured agents
-deepagents list
+deepagents agents list
 ```
 
 For the full reference — including `config.toml` schema, provider parameters, profile overrides, and hook configuration — see [Configuration](/oss/deepagents/cli/configuration).
@@ -453,9 +455,8 @@ Use `/remember` to explicitly prompt the agent to update skills and memory from 
 
         For each skill, the CLI reads the name and the description from the `SKILL.md` file's frontmatter.
         As you use the CLI, if a task matches the skill's description, the agent will read the skill file and follow its instructions.
-        You can also invoke a skill directly with `/skill:<name> [args]`.
 
-        Skill discovery runs at startup and again on `/reload`.
+        You can also invoke a skill directly with `/skill:<name> [args]`. Skill discovery runs at startup and again on `/reload`.
     </Accordion>
 
     <Accordion title="List skills" icon="list">
@@ -740,9 +741,10 @@ deepagents -y
         | `-n`, `--non-interactive TEXT` | Run a single task non-interactively and exit. Shell is disabled unless `--shell-allow-list` is set |
         | `-q`, `--quiet`        | Clean output for piping—only the agent's response goes to stdout. Requires `-n` or piped stdin |
         | `--no-stream`          | Buffer the full response and write to stdout at once instead of streaming. Requires `-n` or piped stdin |
+        | `--stdin`              | Read input from stdin explicitly instead of auto-detection. Errors clearly when stdin is unavailable or is a TTY |
         | `-y`, `--auto-approve` | Auto-approve all tool calls without prompting (disables human-in-the-loop). Toggle with `Shift+Tab` during an interactive session |
         | `-S`, `--shell-allow-list LIST` | Comma-separated shell commands to auto-approve, `'recommended'` for safe defaults, or `'all'` to allow any command. Applies to both `-n` and interactive modes |
-        | `--json`               | Emit machine-readable JSON from management subcommands (`list`, `reset`, `threads`, `skills`). Output envelope: `{"schema_version": 1, "command": "...", "data": ...}` |
+        | `--json`               | Emit machine-readable JSON from management subcommands (`agents`, `threads`, `skills`, `update`). Output envelope: `{"schema_version": 1, "command": "...", "data": ...}` |
         | `--sandbox TYPE`       | Remote sandbox for code execution: `none` (default), `langsmith`, `agentcore`, `modal`, `daytona`, `runloop`. LangSmith is included; AgentCore/Modal/Daytona/Runloop require extras |
         | `--sandbox-id ID`      | Reuse an existing sandbox (skips creation and cleanup)      |
         | `--sandbox-setup PATH` | Path to setup script to run in sandbox after creation       |
@@ -757,16 +759,19 @@ deepagents -y
         | Command                              | Description                            |
         |--------------------------------------|----------------------------------------|
         | `deepagents help`                    | Show help                              |
-        | `deepagents list`                    | List all agents                        |
-        | `deepagents reset --agent NAME`      | Clear agent memory and reset to default|
-        | `deepagents reset --agent NAME --target SOURCE` | Copy memory from another agent |
+        | `deepagents agents list`             | List all agents (alias: `ls`)          |
+        | `deepagents agents reset --agent NAME` | Clear agent memory and reset to default. Supports `--dry-run` |
+        | `deepagents agents reset --agent NAME --target SOURCE` | Copy memory from another agent |
+        | `deepagents update`                  | Check for and install CLI updates      |
         | `deepagents skills list [--project]`           | List all skills (alias: `ls`) |
-        | `deepagents skills create NAME [--project]`    | Create a new skill with template `SKILL.md` |
+        | `deepagents skills create NAME [--project]`    | Create a new skill with template `SKILL.md`. Idempotent — re-creating an existing skill prints an informational message instead of an error |
         | `deepagents skills info NAME [--project]`      | Show detailed information about a skill |
-        | `deepagents skills delete NAME [--project] [-f]` | Delete a skill and its contents |
+        | `deepagents skills delete NAME [--project] [-f]` | Delete a skill and its contents. Supports `--dry-run` |
         | `deepagents threads list [--agent NAME] [--limit N]` | List sessions (alias: `ls`). Default limit: 20. `-n` is a short flag for `--limit`. Additional flags: `--sort {created,updated}`, `--branch TEXT` (filter by git branch), `-v`/`--verbose` (show all columns including branch, created time, and initial prompt), `-r`/`--relative` (relative timestamps) |
-        | `deepagents threads delete ID`       | Delete a session                       |
+        | `deepagents threads delete ID`       | Delete a session. Supports `--dry-run` |
 
         All management subcommands support `--json` for machine-readable output. See [command-line options](#command-line-options) for details.
+
+        Destructive commands (`agents reset`, `skills delete`, `threads delete`) support `--dry-run` to preview what would happen without making changes. In JSON mode, `--dry-run` returns the same envelope with a `dry_run: true` field.
     </Accordion>
 </AccordionGroup>
