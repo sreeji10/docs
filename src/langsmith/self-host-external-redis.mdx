@@ -212,9 +212,9 @@ stringData:
 
 ### OSS Cluster
 
-LangSmith connects to OSS clustering policy instances using standard Redis Cluster mode.
+LangSmith connects to OSS clustering policy instances using Redis Cluster mode.
 
-As of LangSmith helm chart version **0.13.33**, `ssl_check_hostname=false` is supported as a node URI parameter. In our testing, the OSS clustering policy requires disabling SSL hostname verification — Azure's proxy resolves connections to internal node IPs that are not present in the certificate's SAN, causing hostname verification to fail.
+As of LangSmith helm chart version **0.13.33**, `ssl_check_hostname=false` is supported as a node URI parameter. In our testing, the OSS clustering policy requires disabling SSL hostname verification. Azure's proxy resolves connections to internal node IPs that are not present in the certificate's SAN, causing hostname verification to fail.
 
 ```yaml
 redis:
