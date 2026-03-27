@@ -120,16 +120,16 @@ Choose how sandbox lifecycles map to your application's resources. See [going to
 
 Each conversation gets its own sandbox. The sandbox is created when the first run starts and reused for follow-up messages on the same thread. When the thread is cleaned up (or the sandbox TTL expires), the sandbox is destroyed. This is the right default for most agents.
 
-Best for: data analysis, one-off coding tasks, code review.
+Example: a data analysis bot where each conversation starts with a clean environment.
 
 ### Assistant-scoped
 
 All threads for a given [assistant](/langsmith/assistants) share one sandbox. The sandbox ID is stored on the assistant's configuration, so every conversation returns to the same environment. Files, installed packages, and cloned repositories persist across conversations. Use this when the agent maintains a long-running workspace.
 
-Best for: persistent dev environments, long-running projects.
+Example: a coding assistant that maintains a cloned repo and installed dependencies across conversations.
 
 <Warning>
-    Assistant-scoped sandboxes accumulate state over time. Implement periodic cleanup, use snapshots to reset, or configure a TTL to prevent unbounded resource usage.
+    Assistant-scoped sandboxes accumulate files, installed packages, and other in-sandbox state over time. Configure a TTL with your sandbox provider, use snapshots to reset periodically, or implement cleanup logic to prevent the sandbox's disk and memory from growing unbounded. Thread-scoped sandboxes avoid this by starting fresh each conversation.
 </Warning>
 
 ### Basic lifecycle
@@ -242,12 +242,11 @@ For other providers, consult the sandbox provider API for the equivalent labels,
 import uuid
 
 from daytona import CreateSandboxFromSnapshotParams, Daytona
+from deepagents import create_deep_agent
 from langchain_daytona import DaytonaSandbox
 
 client = Daytona()
 thread_id = str(uuid.uuid4())
-
-from deepagents import create_deep_agent
 
 # Get or create sandbox by thread_id
 try:
@@ -406,11 +405,10 @@ Example:
 :::python
 
 ```python
-from dotenv import load_dotenv
 from daytona import Daytona
-
-from langchain_daytona import DaytonaSandbox
 from deepagents import create_deep_agent
+from dotenv import load_dotenv
+from langchain_daytona import DaytonaSandbox
 
 
 load_dotenv()
