@@ -329,6 +329,10 @@ The key decision is how long a sandbox lives. Does each conversation get a fresh
 | **Thread-scoped** | [Thread](/langsmith/use-threads) metadata | Fresh per conversation, cleaned up on TTL | A data analysis bot where each conversation starts clean |
 | **Assistant-scoped** | [Assistant](/langsmith/assistants) config | Shared across all conversations | A coding assistant that maintains a cloned repo across conversations |
 
+<Note>
+The examples below use a [graph factory](/langsmith/graph-rebuild) instead of a static graph because the sandbox needs the `thread_id` or `assistant_id` from the runtime config to look up or create the correct sandbox. A graph factory receives the config on each run, so it can resolve the sandbox before building the agent.
+</Note>
+
 <Tabs>
   <Tab title="Thread-scoped (most common)">
     Each conversation gets its own sandbox. The [graph factory](/langsmith/graph-rebuild) reads `thread_id` from the config, so each [thread](/langsmith/use-threads) automatically gets its own isolated environment. The provider's label-based lookup handles deduplication across runs. Cleaned up when the sandbox [TTL](/langsmith/configure-ttl) expires.
