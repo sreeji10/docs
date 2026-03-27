@@ -331,20 +331,20 @@ The key decision is how long a sandbox lives. Does each conversation get a fresh
 
 <Tabs>
   <Tab title="Thread-scoped (most common)">
-    Each conversation gets its own sandbox. The agent reads `thread_id` from the runtime config via `get_config()`, so each [thread](/langsmith/use-threads) automatically gets its own isolated environment. Cleaned up when the sandbox [TTL](/langsmith/configure-ttl) expires.
+    Each conversation gets its own sandbox. The [graph factory](/langsmith/graph-rebuild) reads `thread_id` from the config, so each [thread](/langsmith/use-threads) automatically gets its own isolated environment. The provider's label-based lookup handles deduplication across runs. Cleaned up when the sandbox [TTL](/langsmith/configure-ttl) expires.
 
 :::python
 ```python agent.py
 from daytona import CreateSandboxFromSnapshotParams, Daytona
 from deepagents import create_deep_agent
+from langchain_core.runnables import RunnableConfig
 from langchain_daytona import DaytonaSandbox
-from langgraph.config import get_config
 
 client = Daytona()
 
 
-async def make_backend(rt):
-    thread_id = get_config()["configurable"]["thread_id"]
+async def agent(config: RunnableConfig):
+    thread_id = config["configurable"]["thread_id"]
     try:
         sandbox = await client.find_one(labels={"thread_id": thread_id})
     except Exception:
@@ -354,94 +354,80 @@ async def make_backend(rt):
                 auto_delete_interval=3600,  # TTL: clean up when idle
             )
         )
-    return DaytonaSandbox(sandbox=sandbox)
-
-
-agent = create_deep_agent(backend=make_backend)
+    return create_deep_agent(backend=DaytonaSandbox(sandbox=sandbox))
 ```
 :::
 
 :::js
 ```typescript src/agent.ts
-import { getConfig } from "@langchain/langgraph";
 import { Daytona } from "@daytonaio/sdk";
 import { DaytonaSandbox } from "@langchain/daytona";
 import { createDeepAgent } from "deepagents";
+import type { RunnableConfig } from "@langchain/core/runnables";
 
 const client = new Daytona();
 
-const agent = createDeepAgent({
-  backend: async (rt) => {
-    const { thread_id: threadId } = getConfig().configurable;
-    let sandbox;
-    try {
-      sandbox = await client.findOne({ labels: { thread_id: threadId } });
-    } catch {
-      sandbox = await client.create({
-        labels: { thread_id: threadId },
-        autoDeleteInterval: 3600, // TTL: clean up when idle
-      });
-    }
-    return DaytonaSandbox.fromId(sandbox.id);
-  },
-});
-
-export { agent };
+export async function agent(config: RunnableConfig) {
+  const threadId = config.configurable!.thread_id;
+  let sandbox;
+  try {
+    sandbox = await client.findOne({ labels: { thread_id: threadId } });
+  } catch {
+    sandbox = await client.create({
+      labels: { thread_id: threadId },
+      autoDeleteInterval: 3600, // TTL: clean up when idle
+    });
+  }
+  return createDeepAgent({ backend: await DaytonaSandbox.fromId(sandbox.id) });
+}
 ```
 :::
 
   </Tab>
   <Tab title="Assistant-scoped">
-    All conversations share one sandbox. The agent reads the [assistant](/langsmith/assistants) ID from runtime metadata, so every thread on the same assistant returns to the same environment. Files, installed packages, and cloned repositories persist across conversations.
+    All conversations share one sandbox. The [graph factory](/langsmith/graph-rebuild) reads the [assistant](/langsmith/assistants) ID from config metadata, so every thread on the same assistant returns to the same environment. Files, installed packages, and cloned repositories persist across conversations.
 
 :::python
 ```python agent.py
 from daytona import CreateSandboxFromSnapshotParams, Daytona
 from deepagents import create_deep_agent
+from langchain_core.runnables import RunnableConfig
 from langchain_daytona import DaytonaSandbox
-from langgraph.config import get_config
 
 client = Daytona()
 
 
-async def make_backend(rt):
-    assistant_id = get_config()["metadata"]["assistant_id"]
+async def agent(config: RunnableConfig):
+    assistant_id = config["metadata"]["assistant_id"]
     try:
         sandbox = await client.find_one(labels={"assistant_id": assistant_id})
     except Exception:
         sandbox = await client.create(
             CreateSandboxFromSnapshotParams(labels={"assistant_id": assistant_id})
         )
-    return DaytonaSandbox(sandbox=sandbox)
-
-
-agent = create_deep_agent(backend=make_backend)
+    return create_deep_agent(backend=DaytonaSandbox(sandbox=sandbox))
 ```
 :::
 
 :::js
 ```typescript src/agent.ts
-import { getConfig } from "@langchain/langgraph";
 import { Daytona } from "@daytonaio/sdk";
 import { DaytonaSandbox } from "@langchain/daytona";
 import { createDeepAgent } from "deepagents";
+import type { RunnableConfig } from "@langchain/core/runnables";
 
 const client = new Daytona();
 
-const agent = createDeepAgent({
-  backend: async (rt) => {
-    const assistantId = getConfig().metadata.assistantId;
-    let sandbox;
-    try {
-      sandbox = await client.findOne({ labels: { assistant_id: assistantId } });
-    } catch {
-      sandbox = await client.create({ labels: { assistant_id: assistantId } });
-    }
-    return DaytonaSandbox.fromId(sandbox.id);
-  },
-});
-
-export { agent };
+export async function agent(config: RunnableConfig) {
+  const assistantId = config.metadata!.assistant_id;
+  let sandbox;
+  try {
+    sandbox = await client.findOne({ labels: { assistant_id: assistantId } });
+  } catch {
+    sandbox = await client.create({ labels: { assistant_id: assistantId } });
+  }
+  return createDeepAgent({ backend: await DaytonaSandbox.fromId(sandbox.id) });
+}
 ```
 :::
 
@@ -451,7 +437,9 @@ export { agent };
   </Tab>
 </Tabs>
 
-Once deployed with `langgraph deploy`, invoke the agent from your application code using the SDK. The client-side code is the same regardless of scope. The scoping is handled entirely in the agent definition above, but the behavior differs:
+Because the `agent` variable is an async function (not a compiled graph), the server treats it as a [graph factory](/langsmith/graph-rebuild) and calls it on each run, injecting the config. The factory looks up or creates the sandbox via the provider's label-based search and returns a fresh agent graph wired to that sandbox.
+
+Once deployed with `langgraph deploy`, invoke the agent from your application code using the SDK. The client-side code is the same regardless of scope. The scoping is handled entirely in the agent factory above, but the behavior differs:
 
 <Tabs>
   <Tab title="Thread-scoped">
