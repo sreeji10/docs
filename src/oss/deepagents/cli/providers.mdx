@@ -129,7 +129,7 @@ To switch models in the CLI, either:
 The interactive `/model` selector builds its list dynamically—it is not a hardcoded list baked into the CLI. A model appears in the switcher when **all** of the following are true:
 
 1. **The provider package is installed.** Each provider (e.g. `langchain-anthropic`, `langchain-openai`) must be installed alongside `deepagents-cli`—either as an [install extra](/oss/deepagents/cli/providers#quick-start) (e.g. `uv tool install 'deepagents-cli[ollama]'`) or added later with `uv tool install deepagents-cli --with <package>`. If a package is missing, its entire provider section is absent from the switcher.
-2. **The model has a profile with `tool_calling` enabled.** The CLI inherently requires that your model be able to call tools, so we filter out models that don't support tool calling (as indicated in their model profile data). This is the most common reason a model is missing from the list. For providers that don't bundle profiles (see the [Provider reference](#provider-reference) table), you can define one in `config.toml`:
+2. **The model has a profile with `tool_calling` enabled.** The CLI requires tool-calling support, so models without `tool_calling: true` in their profile are excluded. This is the most common reason a model is missing from the list. For providers that don't bundle profiles (see the [Provider reference](#provider-reference) table), you can define one in `config.toml`:
 
     ```toml
     [models.providers.ollama.profile."qwen3:4b"]

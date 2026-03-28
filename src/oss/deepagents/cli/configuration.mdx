@@ -40,7 +40,7 @@ DEEPAGENTS_CLI_OPENAI_API_KEY=sk-cli-only
 DEEPAGENTS_CLI_ANTHROPIC_API_KEY=
 ```
 
-This is useful when you need to scope credentials to the CLI without colliding with identically-named shell exports. On `/reload`, the CLI re-reads `.env` files and picks up prefixed values, so you can rotate keys without restarting.
+On `/reload`, the CLI re-reads `.env` files and picks up prefixed values, so you can rotate keys without restarting.
 
 ### Example
 
@@ -338,7 +338,7 @@ Your provider package may optionally provide model profiles at a `_PROFILES` dic
 
 ### Extra allowed directories
 
-By default, `load_skill_content` validates that a resolved skill file path stays inside one of the standard [skill directories](/oss/deepagents/skills#skill-locations). This prevents symlinks inside skill directories from reading arbitrary files outside those roots.
+By default, `load_skill_content` validates that a resolved skill file path stays inside one of the standard [skill directories](/oss/deepagents/data-locations#skills). This prevents symlinks inside skill directories from reading arbitrary files outside those roots.
 
 If you store shared skill assets in a non-standard location and use symlinks from a standard skill directory to reference them, you can add that location to the containment allowlist. This does **not** add a new skill discovery location — skills are still only discovered from the standard directories.
 
@@ -447,7 +447,7 @@ All CLI-specific environment variables use the `DEEPAGENTS_CLI_` prefix. See [`D
 | `DEEPAGENTS_CLI_DEBUG` | Enable verbose debug logging to a file |
 | `DEEPAGENTS_CLI_DEBUG_FILE` | Path for the debug log file (default: `/tmp/deepagents_debug.log`) |
 | `DEEPAGENTS_CLI_EXTRA_SKILLS_DIRS` | Colon-separated paths added to the [skill containment allowlist](#extra-allowed-directories) |
-| `DEEPAGENTS_CLI_LANGSMITH_PROJECT` | Override the LangSmith project name for agent traces. See [Separate agent traces from app traces](/oss/deepagents/cli/overview#tracing-with-langsmith) |
+| `DEEPAGENTS_CLI_LANGSMITH_PROJECT` | Override the LangSmith project name for agent traces. See [Tracing with LangSmith](/oss/deepagents/cli/overview#tracing-with-langsmith) |
 | `DEEPAGENTS_CLI_NO_UPDATE_CHECK` | Disable automatic update checking when set |
 | `DEEPAGENTS_CLI_SHELL_ALLOW_LIST` | Comma-separated shell commands to allow (or `recommended` / `all`) |
 | `DEEPAGENTS_CLI_USER_ID` | Attach a user identifier to LangSmith trace metadata |

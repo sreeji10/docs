@@ -57,7 +57,7 @@ The Deep Agents CLI has the following built-in capabilities:
         When running the CLI non-interactively (via `-n` or piped stdin), shell execution is disabled by default even with `-y`/`--auto-approve`. Use `-S`/`--shell-allow-list` to allowlist specific commands (e.g., `-S "pytest,git,make"`), `recommended` for safe defaults, or `all` to permit any command. The `DEEPAGENTS_CLI_SHELL_ALLOW_LIST` environment variable is also supported. See [Non-interactive mode and piping](#non-interactive-mode-and-piping) for more details.
     </Note>
 
-    <sup>2</sup>: The CLI automatically offloads the conversation in the background when token usage exceeds a model-aware threshold. Offloading summarizes older messages via the LLM, and ejects originals to backend storage (`/conversation_history/{thread_id}.md`), replacing them in context with the summary. The agent can still retrieve the full history from the offloaded file if needed. The `compact_conversation` tool lets the agent (or you) trigger offloading on demand. When called as a tool, it requires user approval by default.
+    <sup>2</sup>: The CLI automatically offloads the conversation in the background when token usage exceeds a model-aware threshold. Offloading summarizes older messages via the LLM, and ejects originals to storage (`/conversation_history/{thread_id}.md`), replacing them in context with the summary. The agent can still retrieve the full history from the offloaded file if needed. The `compact_conversation` tool lets the agent (or you) trigger offloading on demand. When called as a tool, it requires user approval by default.
 </Accordion>
 
 <Tip>
@@ -153,12 +153,12 @@ The agent will use its built-in tools, skills, and memory to help you with tasks
         - `/remember [context]` - Review conversation and update memory and skills. Optionally pass additional context
         - `/skill:<name> [args]` - Directly invoke a skill by name. The skill's `SKILL.md` instructions are injected into the prompt along with any arguments you provide
         - `/skill-creator [args]` - Guide for creating effective agent skills
-        - `/offload` (alias `/compact`) - Free up context window space by offloading messages to backend storage with a summary placeholder in the conversation. The agent can retrieve the full history from the offloaded file if needed
+        - `/offload` (alias `/compact`) - Free up context window space by offloading messages to storage with a summary placeholder. The agent can retrieve the full history from the offloaded file if needed
         - `/tokens` - Display current context window token usage breakdown
         - `/clear` - Clear conversation history and start a new thread
         - `/threads` - Browse and resume previous conversation threads
         - `/mcp` - Show active MCP servers and tools
-        - `/reload` - Re-read `.env` files, refresh runtime configuration (API keys, shell allow-list), and re-discover skills without restarting. Shell-exported variables always take precedence — use the [`DEEPAGENTS_CLI_` prefix](/oss/deepagents/cli/configuration#deepagents_cli_-prefix) to override them from `.env`. Conversation state is preserved
+        - `/reload` - Re-read `.env` files, refresh configuration, and re-discover skills without restarting. Conversation state is preserved. See [`DEEPAGENTS_CLI_` prefix](/oss/deepagents/cli/configuration#deepagents_cli_-prefix) for override behavior
         - `/theme` - Open the interactive theme selector to switch color themes. Built-in themes are available plus any [user-defined themes](/oss/deepagents/cli/configuration#themes)
         - `/update` - Check for and install CLI updates inline. Detects your install method (uv, Homebrew, pip) and runs the appropriate upgrade command
         - `/auto-update` - Toggle automatic updates on or off
