@@ -11,17 +11,17 @@ It retains persistent memory, maintains context across sessions, learns project 
 
 The Deep Agents CLI has the following built-in capabilities:
 
-* <Icon icon="file" size={16} /> **File operations** - read, write, and edit files in your project with tools that enable agents to manage and modify code and documentation.
-* <Icon icon="terminal" size={16} /> **Shell command execution** - execute shell commands to run tests, build projects, manage dependencies, and interact with version control systems.
+* <Icon icon="file" size={16} /> **File operations** - read, write, and edit files with tools that enable agents to manage and modify code and documentation.
+* <Icon icon="terminal" size={16} /> **Shell execution** - execute commands to run tests, build projects, manage dependencies, and interact with version control.
 * <Icon icon="search" size={16} /> **Web search** - search the web for up-to-date information and documentation (requires Tavily API key).
 * <Icon icon="globe" size={16} /> **HTTP requests** - make HTTP requests to APIs and external services for data fetching and integration tasks.
-* <Icon icon="list-check" size={16} /> **Task planning and tracking** - break down complex tasks into discrete steps and track progress through the built-in todo system.
+* <Icon icon="list-check" size={16} /> **Task planning and tracking** - break down complex tasks into discrete steps and track progress.
 * <Icon icon="brain" size={16} /> **Memory storage and retrieval** - store and retrieve information across sessions, enabling agents to remember project conventions and learned patterns.
-* <Icon icon="arrows-minimize" size={16} /> **Context compaction & offloading** - summarize older conversation messages and offload originals to backend storage, freeing context window space during long sessions.
+* <Icon icon="arrows-minimize" size={16} /> **Context compaction & offloading** - summarize older conversation messages and offload originals to storage, freeing context window space during long sessions.
 * <Icon icon="user" size={16} /> **Human-in-the-loop** - require human approval for sensitive tool operations.
-* <Icon icon="puzzle" size={16} /> **Skills** - extend agent capabilities with custom expertise and instructions stored in skill directories.
-* <Icon icon="plug" size={16} /> **[MCP tools](/oss/deepagents/cli/mcp-tools)** - load external tools from [Model Context Protocol](https://modelcontextprotocol.io/) servers via auto-discovered or explicit config files.
-* <Icon icon="chart-dots" size={16} /> **[Tracing](/oss/deepagents/cli/overview#tracing-with-langsmith)** - trace agent operations, tool calls, and decisions in LangSmith for observability and debugging.
+* <Icon icon="puzzle" size={16} /> **Skills** - extend agent capabilities with custom expertise and instructions.
+* <Icon icon="plug" size={16} /> **[MCP tools](/oss/deepagents/cli/mcp-tools)** - load external tools from [Model Context Protocol](https://modelcontextprotocol.io/) servers.
+* <Icon icon="chart-dots" size={16} /> **[Tracing](/oss/deepagents/cli/overview#tracing-with-langsmith)** - trace agent operations in LangSmith for observability and debugging.
 
 <Accordion title="Full list of built-in tools">
     ## Built-in tools
@@ -31,24 +31,26 @@ The Deep Agents CLI has the following built-in capabilities:
     | Tool | Description | Human-in-the-Loop |
     |------|-------------|-------------------|
     | `ls` | List files and directories | - |
-    | `read_file` | Read contents of a file; supports images (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) as multimodal content | - |
+    | `read_file` | Read contents of a file; multimodal content for select models | - |
     | `write_file` | Create or overwrite a file | Required<sup>1</sup> |
     | `edit_file` | Make targeted edits to existing files | Required<sup>1</sup> |
-    | `glob` | Find files matching a pattern (e.g., `**/*.py`) | - |
+    | `glob` | Find files matching a pattern | - |
     | `grep` | Search for text patterns across files | - |
     | `execute` | Execute shell commands locally or in a remote sandbox | Required<sup>1</sup> |
-    | `http_request` | Make HTTP requests to APIs and web services (`GET`, `POST`, `PUT`, `DELETE`, etc.) | - |
-    | `web_search` | Search the web using Tavily API | Required<sup>1</sup> |
+    | `http_request` | Make HTTP requests to APIs and web services | - |
+    | `web_search` | Search the web using Tavily | Required<sup>1</sup> |
     | `fetch_url` | Fetch and convert web pages to markdown | Required<sup>1</sup> |
     | `task` | Delegate work to subagents for parallel execution | Required<sup>1</sup> |
-    | `ask_user` | Ask the user free-form or multiple-choice questions when clarification is needed | - |
+    | `ask_user` | Ask the user free-form or multiple-choice questions | - |
     | `compact_conversation` | Summarize older messages, offload originals to backend storage, and replace them in context with the summary | Mixed<sup>2</sup> |
     | `write_todos` | Create and manage task lists for complex work | - |
 
-    <sup>1</sup>: Potentially destructive operations require user approval before execution. To bypass human approval, you can toggle auto-approve or start the deep agent with the `auto-approve` option:
+    <sup>1</sup>: Potentially destructive operations require user approval before execution. To bypass human approval, you can toggle auto-approve (shift+tab) or start with the option:
 
     ```bash
     deepagents -y
+    # or
+    deepagents --auto-approve
     ```
 
     <Note>
@@ -76,7 +78,7 @@ The Deep Agents CLI has the following built-in capabilities:
             Store keys in `~/.deepagents/.env` so they're available in every project without per-shell exports. See [environment variables](/oss/deepagents/cli/configuration#environment-variables).
         </Tip>
 
-        The CLI works with [any LLM that supports tool calling](/oss/deepagents/cli/providers) — OpenAI, Anthropic, Google, Ollama, and many more. See [Providers](#providers) for setup details.
+        The CLI works with any LLM that supports tool calling — OpenAI, Anthropic, Google, Ollama, and many more. See [Providers](#providers) for setup details.
     </Step>
 
     <Step title="Install and run" icon="terminal">
@@ -88,6 +90,7 @@ The Deep Agents CLI has the following built-in capabilities:
             ```
 
             ```bash Script with extras
+            # OpenAI, Anthropic, and Gemini are included by default
             DEEPAGENTS_EXTRAS="ollama,groq" curl -LsSf https://raw.githubusercontent.com/langchain-ai/deepagents/refs/heads/main/libs/cli/scripts/install.sh | bash
             ```
 
@@ -122,7 +125,7 @@ The Deep Agents CLI has the following built-in capabilities:
 
 ## Providers
 
-The CLI is intentionally lightweight—it ships with OpenAI, Anthropic, and Google support out of the box. Each additional model provider is a separate dependency, so you only pull in what you need.
+The CLI is intentionally lightweight, shipping with OpenAI, Claude, and Gemini support out of the box. Each additional model provider is a separate dependency, so you only pull in what you need.
 
 ```bash
 # Add extra providers to an existing install
@@ -148,14 +151,17 @@ The agent will use its built-in tools, skills, and memory to help you with tasks
 
         - `/model` - Switch models or open the interactive model selector. See [Switch models](#switch-models) for details
         - `/remember [context]` - Review conversation and update memory and skills. Optionally pass additional context
-        - `/offload` - Free up context window space by offloading messages to backend storage with a summary placeholder in the conversation. The agent can retrieve the full history from the offloaded file if needed.
+        - `/skill:<name> [args]` - Directly invoke a skill by name. The skill's `SKILL.md` instructions are injected into the prompt along with any arguments you provide
+        - `/skill-creator [args]` - Guide for creating effective agent skills
+        - `/offload` (alias `/compact`) - Free up context window space by offloading messages to backend storage with a summary placeholder in the conversation. The agent can retrieve the full history from the offloaded file if needed
         - `/tokens` - Display current context window token usage breakdown
         - `/clear` - Clear conversation history and start a new thread
         - `/threads` - Browse and resume previous conversation threads
+        - `/mcp` - Show active MCP servers and tools
         - `/reload` - Refresh runtime configuration (API keys, `.env` changes, shell allow-list) and re-discover skills without restarting. Conversation state is preserved
-        - `/skill:<name> [args]` - Directly invoke a skill by name. The skill's `SKILL.md` instructions are injected into the prompt along with any arguments you provide
-        - `/theme` - Open the interactive theme selector to switch color themes. Built-in themes are available plus any [user-defined themes](/oss/deepagents/cli/configuration#themes).
+        - `/theme` - Open the interactive theme selector to switch color themes. Built-in themes are available plus any [user-defined themes](/oss/deepagents/cli/configuration#themes)
         - `/update` - Check for and install CLI updates inline. Detects your install method (uv, Homebrew, pip) and runs the appropriate upgrade command
+        - `/auto-update` - Toggle automatic updates on or off
         - `/trace` - Open the current thread in LangSmith (requires `LANGSMITH_API_KEY`)
         - `/editor` - Open the current prompt in your external editor (`$VISUAL` / `$EDITOR`). See [External editor](/oss/deepagents/cli/configuration#external-editor)
         - `/changelog` - Open the CLI changelog in your browser
@@ -211,7 +217,7 @@ cat error.log | deepagents -n "What's causing this error?"
 git diff | deepagents -n "Review these changes"
 ```
 
-When piped input is combined with `-n` or `-m`, the piped content is prepended to the flag's value.
+When you combine piped input with `-n` or `-m`, the piped content appears first, followed by the text you pass to the flag.
 
 <Note>
     The maximum piped input size is 10 MiB.
@@ -246,7 +252,9 @@ Shell execution is disabled by default in non-interactive mode. Use `-S`/`--shel
 </AccordionGroup>
 
 <Warning>
-    `-S all` / `--shell-allow-list all` lets the agent execute arbitrary shell commands with no human confirmation. Use with caution.
+    **Use with caution.**
+
+    `-S all` or `--shell-allow-list all` lets the agent execute arbitrary shell commands with no human confirmation.
 </Warning>
 
 ## Switch models
@@ -262,9 +270,9 @@ You can switch models during a session without restarting the CLI using the `/mo
 deepagents --model openai:gpt-4o
 ```
 
-Run `/model` with no arguments to open an interactive model selector that displays available models grouped by provider.
+Run `/model` to open an interactive model selector that displays available models grouped by provider.
 
-For full details on switching models, setting a default, and configuring custom providers, see [Model providers](/oss/deepagents/cli/providers). For `config.toml` reference and lifecycle hooks, see [Configuration](/oss/deepagents/cli/configuration).
+For full details on switching models, setting a default, and adding custom model providers, see [Model providers](/oss/deepagents/cli/providers).
 
 <AccordionGroup>
     <Accordion title="Interactive model selector" icon="list">
@@ -302,7 +310,17 @@ deepagents agents list
 
 For the full reference — including `config.toml` schema, provider parameters, profile overrides, and hook configuration — see [Configuration](/oss/deepagents/cli/configuration).
 
-## Teach your agent project conventions
+## Memory
+
+There are two primary ways to customize any agent:
+
+- **Memory**: `AGENTS.md` files and auto-saved memories that persist across sessions. Use memory for general coding style, preferences, and learned conventions.
+
+- **Skills**: Global and project-specific context, conventions, guidelines, or instructions. Use skills for context that is only required when performing specific tasks.
+
+Use `/remember` to explicitly prompt the agent to update its memory and skills from the current conversation.
+
+### Automatic memory
 
 As you use the agent, it automatically stores information in `~/.deepagents/<agent_name>/memories/` as markdown files using a memory-first protocol:
 
@@ -322,7 +340,7 @@ The agent organizes its memories by topic with descriptive filenames:
 When you teach the agent conventions:
 
 ```bash
-uvx deepagents-cli --agent backend-dev
+deepagents --agent backend-dev
 > Our API uses snake_case and includes created_at/updated_at timestamps
 ```
 
@@ -333,24 +351,14 @@ It remembers for future sessions:
 # Applies conventions without prompting
 ```
 
-## Customize your deep agent
+### AGENTS.md files
 
-There are two primary ways to customize any agent:
-
-- **Memory**: Global and project-specific `AGENTS.md` files which are loaded in full at session start.
-  Use memory for general coding style and preferences.
-
-- **Skills**: Global and project-specific context, conventions, guidelines, or instructions.
-  Use skills for context that is only required when performing specific tasks.
-
-### Provide project or user context
-
-[`AGENTS.md` files](https://agents.md/) provide persistent memory that is always loaded at session start.
+[`AGENTS.md` files](https://agents.md/) provide persistent context that is always loaded at session start:
 
 - **Global**: `~/.deepagents/<agent_name>/AGENTS.md` — loaded every session.
 - **Project**: `.deepagents/AGENTS.md` in any git project root — loaded when the CLI is run from within that project.
 
-Both files are appended to the system prompt at startup. Use `/remember` to explicitly prompt the agent to update its memory and skills from the current conversation.
+Both files are appended to the system prompt at startup.
 
 <AccordionGroup>
     <Accordion title="How memory works" icon="brain">
@@ -480,7 +488,7 @@ Use `/remember` to explicitly prompt the agent to update skills and memory from 
     </Accordion>
 </AccordionGroup>
 
-## Custom subagents
+## Subagents
 
 Define custom [subagents](/oss/deepagents/subagents) as markdown files so the CLI agent can delegate specialized tasks to them. Each subagent lives in its own folder with an `AGENTS.md` file:
 
@@ -491,10 +499,10 @@ Define custom [subagents](/oss/deepagents/subagents) as markdown files so the CL
 
 Project subagents override user subagents with the same name (see [precedence rules](/oss/deepagents/data-locations#subagents)).
 
-The frontmatter requires `name` and `description` (same as the [SubAgent dictionary spec](/oss/deepagents/subagents#subagent-dictionary-based)). The markdown body becomes the subagent's `system_prompt`. In addition to the base spec, `AGENTS.md` files support an optional `model` frontmatter field that overrides the main agent's model for this subagent. Uses the `provider:model-name` format (e.g., `anthropic:claude-haiku-4-5-20251001`, `openai:gpt-4o`). Omit to inherit the main agent's model.
+The frontmatter requires `name` and `description` (same as the [`SubAgent` dictionary spec](/oss/deepagents/subagents#subagent-dictionary-based)). The markdown body becomes the subagent's `system_prompt`. In addition to the base spec, `AGENTS.md` files support an optional `model` frontmatter field that overrides the main agent's model for this subagent. Uses the `provider:model-name` format (e.g., `anthropic:claude-opus-4-6`, `openai:gpt-5.4`). Omit to inherit the main agent's model.
 
 <Note>
-    Other SubAgent fields (`tools`, `middleware`, `interrupt_on`, `skills`) are not configurable via `AGENTS.md` frontmatter — custom subagents defined this way inherit the main agent's tools. Use the SDK directly for full control.
+    Other `SubAgent` fields (`tools`, `middleware`, `interrupt_on`, `skills`) are currently not configurable via `AGENTS.md` frontmatter — custom subagents defined this way inherit the main agent's tools. Use the SDK directly for full control.
 </Note>
 
 <AccordionGroup>
@@ -516,7 +524,7 @@ The frontmatter requires `name` and `description` (same as the [SubAgent diction
         ```
     </Accordion>
 
-    <Accordion title="Example: cost-efficient subagents" icon="dollar-sign">
+    <Accordion title="Example: cost-efficient subagents">
         Use a cheaper, faster model for simple delegation tasks while keeping the main agent on a more capable model:
 
         ```markdown
@@ -554,9 +562,9 @@ For a deeper look at sandbox architecture, integration patterns, and security be
                 Included by default when installing `deepagents-cli`. No extra installation needed.
             </Tab>
             <Tab title="AgentCore">
-            ```bash
+                ```bash
                 uv tool install deepagents-cli --with langchain-agentcore-codeinterpreter
-            ```
+                ```
             </Tab>
             <Tab title="Daytona">
                 ```bash
@@ -584,12 +592,12 @@ For a deeper look at sandbox architecture, integration patterns, and security be
                 ```
             </Tab>
             <Tab title="AgentCore">
-            ```bash
+                ```bash
                 export AWS_ACCESS_KEY_ID="your-key"
                 export AWS_SECRET_ACCESS_KEY="your-secret"
                 export AWS_SESSION_TOKEN="session-token"
                 export AWS_REGION="us-west-2"
-            ```
+                ```
             </Tab>
             <Tab title="Daytona">
                 ```bash
@@ -617,9 +625,9 @@ For a deeper look at sandbox architecture, integration patterns, and security be
                 ```
             </Tab>
             <Tab title="AgentCore">
-            ```bash
+                ```bash
                 deepagents --sandbox agentcore
-            ```
+                ```
             </Tab>
             <Tab title="Daytona">
                 ```bash
@@ -772,6 +780,8 @@ deepagents -y
         | `--mcp-config PATH`    | Add an explicit MCP config as the highest-precedence source (merged with auto-discovered configs) |
         | `--no-mcp`             | Disable all MCP tool loading                                |
         | `--trust-project-mcp`  | Trust project-level MCP configs with stdio servers (skip approval prompt) |
+        | `--profile-override JSON` | Override model profile fields as a JSON string (e.g., `'{"max_input_tokens": 4096}'`). Merged on top of config file profile overrides |
+        | `--acp`                | Run as an ACP server over stdio instead of launching the interactive UI |
         | `-v`, `--version`      | Display version                                             |
         | `-h`, `--help`         | Show help                                                   |
     </Accordion>
