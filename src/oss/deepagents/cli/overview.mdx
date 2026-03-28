@@ -719,7 +719,7 @@ export LANGSMITH_TRACING=false
 ```
 
 <Accordion title="Separate agent traces from app traces">
-    When invoking the CLI programmatically from a LangChain application (e.g., as a subprocess in [non-interactive mode](/oss/deepagents/cli/non-interactive)), both your app and the CLI produce LangSmith traces. By default, these all land in the same project.
+    When invoking the CLI programmatically from a LangChain application (e.g., as a subprocess in [non-interactive mode](#non-interactive-mode-and-piping)), both your app and the CLI produce LangSmith traces. By default, these all land in the same project.
 
     To send CLI traces to a dedicated project, set `DEEPAGENTS_CLI_LANGSMITH_PROJECT`:
 
