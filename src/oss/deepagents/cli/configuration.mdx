@@ -24,9 +24,23 @@ Two `.env` files are loaded at startup:
 1. **Project `.env`** — the `.env` file in your current working directory (if present)
 2. **Global `~/.deepagents/.env`** — a single shared file that acts as a fallback for all projects
 
-Precedence at startup: **shell environment > project `.env` > global `.env`**. Values already set in the shell are never overwritten. Project-level values always take priority over the global file.
+The effective precedence is: **shell environment > project `.env` > global `.env`**. Values already set in the shell are never overwritten — including on `/reload`.
 
-On `/reload`, project `.env` is re-read with override semantics (it can update shell vars set since startup), but the global file still loads as a fallback.
+### `DEEPAGENTS_CLI_` prefix
+
+All CLI-specific environment variables use a `DEEPAGENTS_CLI_` prefix (e.g., `DEEPAGENTS_CLI_AUTO_UPDATE`, `DEEPAGENTS_CLI_DEBUG`). See the [CLI environment variable reference](#cli-environment-variable-reference) for the full list.
+
+The prefix also works as an override mechanism for any environment variable the CLI reads, including third-party credentials. The CLI checks `DEEPAGENTS_CLI_{NAME}` first, then falls back to `{NAME}`:
+
+```bash title="~/.deepagents/.env"
+# Override OPENAI_API_KEY only for the CLI, without affecting other tools
+DEEPAGENTS_CLI_OPENAI_API_KEY=sk-cli-only
+
+# Block a shell-exported key within the CLI by setting the prefixed var to empty
+DEEPAGENTS_CLI_ANTHROPIC_API_KEY=
+```
+
+This is useful when you need to scope credentials to the CLI without colliding with identically-named shell exports. On `/reload`, the CLI re-reads `.env` files and picks up prefixed values, so you can rotate keys without restarting.
 
 ### Example
 
@@ -340,7 +354,7 @@ If you store shared skill assets in a non-standard location and use symlinks fro
     </Accordion>
     <Accordion title="Environment variable">
     ```bash
-    export DEEPAGENTS_EXTRA_SKILLS_DIRS="~/shared-skills:/opt/team-skills"
+    export DEEPAGENTS_CLI_EXTRA_SKILLS_DIRS="~/shared-skills:/opt/team-skills"
     ```
     </Accordion>
 </AccordionGroup>
@@ -408,7 +422,7 @@ The CLI can automatically check for and install updates.
     </Accordion>
     <Accordion title="Environment variable">
     ```bash
-    export DEEPAGENTS_AUTO_UPDATE=1
+    export DEEPAGENTS_CLI_AUTO_UPDATE=1
     ```
     </Accordion>
 </AccordionGroup>
@@ -420,6 +434,23 @@ You can also check for and install updates manually at any time with the `/updat
 After an upgrade, the CLI shows a "what's new" banner on the next launch with a link to the changelog.
 
 At session exit, if a newer version was detected during the session, an update banner is displayed as a reminder.
+
+---
+
+## CLI environment variable reference
+
+All CLI-specific environment variables use the `DEEPAGENTS_CLI_` prefix. See [`DEEPAGENTS_CLI_` prefix](#deepagents_cli_-prefix) for how the prefix also works as an override for third-party credentials.
+
+| Variable | Description |
+|----------|-------------|
+| `DEEPAGENTS_CLI_AUTO_UPDATE` | Enable automatic CLI updates (`1`, `true`, or `yes`) |
+| `DEEPAGENTS_CLI_DEBUG` | Enable verbose debug logging to a file |
+| `DEEPAGENTS_CLI_DEBUG_FILE` | Path for the debug log file (default: `/tmp/deepagents_debug.log`) |
+| `DEEPAGENTS_CLI_EXTRA_SKILLS_DIRS` | Colon-separated paths added to the [skill containment allowlist](#extra-allowed-directories) |
+| `DEEPAGENTS_CLI_LANGSMITH_PROJECT` | Override the LangSmith project name for agent traces. See [Separate agent traces from app traces](/oss/deepagents/cli/overview#tracing-with-langsmith) |
+| `DEEPAGENTS_CLI_NO_UPDATE_CHECK` | Disable automatic update checking when set |
+| `DEEPAGENTS_CLI_SHELL_ALLOW_LIST` | Comma-separated shell commands to allow (or `recommended` / `all`) |
+| `DEEPAGENTS_CLI_USER_ID` | Attach a user identifier to LangSmith trace metadata |
 
 ---
 

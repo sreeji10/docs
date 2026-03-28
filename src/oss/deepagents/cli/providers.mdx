@@ -64,6 +64,10 @@ Using a provider not listed here? See [Arbitrary providers](/oss/deepagents/cli/
 | LiteLLM | [`langchain-litellm`](/oss/integrations/chat/litellm) | Per-provider (see [docs](https://docs.litellm.ai/)) | ❌ |
 
 <Tip>
+    You can scope any credential to the CLI by adding a `DEEPAGENTS_CLI_` prefix. For example, `DEEPAGENTS_CLI_OPENAI_API_KEY` takes priority over `OPENAI_API_KEY` within the CLI without affecting other tools. See [`DEEPAGENTS_CLI_` prefix](/oss/deepagents/cli/configuration#deepagents_cli_-prefix) for details.
+</Tip>
+
+<Tip>
     A **[model profile](/oss/langchain/models#model-profiles)** is a bundle of metadata (model name, default parameters, capabilities, etc.) that ships with a provider package, largely powered by the [models.dev](https://models.dev/) project.
 
     Providers that include model profiles have their models listed automatically in the interactive `/model` switcher, subject to the [filtering criteria](#which-models-appear-in-the-switcher) (notably, `tool_calling` must be enabled). Providers without model profiles require you to specify the model name directly or add models via `config.toml`.
